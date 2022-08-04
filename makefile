@@ -1,24 +1,25 @@
 
 args =
-gdb_args = -r
+gdb_args = -ex=r -ex=q
+gprof_args = -b -p
 
 mode = release
 ifeq ($(mode),debug)
 MODEFLAGS = -g -DVAT_DEBUG
 O = 0
-else
+else ifeq ($(mode),gprof)
+MODEFLAGS = -g -pg -DVAT_DEBUG
+O = 0
+else ifeq ($(mode),release)
 MODEFLAGS = -flto -s
 O = 2
+else
+$(error "Unknown mode: $(mode)")
 endif
 
 sanitize = false
 ifeq ($(sanitize),true)
-MODEFLAGS += -fsanitize=address
-endif
-
-analyzer = false
-ifeq ($(analyzer),true)
-MODEFLAGS += -fanalyzer
+MODEFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 endif
 
 error = false
@@ -31,6 +32,11 @@ ifeq ($(pedantic),true)
 MODEFLAGS += -pedantic
 endif
 
+native = false
+ifeq ($(native),true)
+MODEFLAGS += -march=native
+endif
+
 std = gnu2x
 
 CC = gcc
@@ -38,6 +44,7 @@ CFLAGS = $(MODEFLAGS) -O$O -std=$(std) -Wall -Wextra
 
 SRC_DIR = src
 SRC = $(SRC_DIR)/main.c
+OBJ = gmon.out
 EXEC = vat
 
 all: $(EXEC)
@@ -51,7 +58,10 @@ run: $(EXEC)
 gdb: $(EXEC)
 	gdb -q $(gdb_args) --args $(EXEC) $(args)
 
-clean:
-	$(RM) $(EXEC)
+gprof:
+	gprof $(gprof_args) $(EXEC) gmon.out
 
-.PHONY = run gdb clean
+clean:
+	$(RM) $(EXEC) $(OBJ)
+
+.PHONY = run gdb gprof clean
