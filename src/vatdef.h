@@ -1,10 +1,15 @@
 #pragma once
 
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <assert.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #ifndef __GNUC__
 #warning "This program is not compiled with GCC, it might not work"
@@ -13,28 +18,63 @@
 #ifndef __STDC_VERSION__
 #error "This stdc version is not supported"
 #elif __STDC_VERSION__ < 202000L
-#define VAT_PRE_STDC23
+#define PRE_STDC23
 #else
-#define VAT_STDC23
+#define STDC23
 #endif
 
-#define VAT_CAT_NX(lhs, rhs) lhs##rhs
-#define VAT_CAT(lhs, rhs) VAT_CAT_NX(lhs, rhs)
-#define VAT_STR_NX(x) #x
-#define VAT_STR(x) VAT_STR_NX(x)
+#define CAT_NX(lhs, rhs) lhs##rhs
+#define CAT(lhs, rhs) CAT_NX(lhs, rhs)
+#define STR_NX(x) #x
+#define STR(x) STR_NX(x)
+
+#define attr(x) __attribute__((x))
+#define attr_aligned(x) attr(aligned(x))
+#define attr_warn_if_not_aligned(x) attr(warn_if_not_aligned(x))
+#define attr_alloc_size(x) attr(alloc_size(x))
+#define attr_always_inline attr(always_inline) inline
+#define attr_cleanup(func) attr(cleanup(func))
+#define attr_copy(arg) attr(copy(arg))
+#define attr_cold attr(cold)
+#define attr_const attr(const)
+#define attr_constructor attr(constructor)
+#define attr_destructor attr(destructor)
+#define attr_deprecated attr(deprecated)
+#define attr_deprecated_msg(msg) attr(deprecated(msg))
+#define attr_designated_init attr(designated_init)
+#define attr_packed attr(packed)
+#define attr_transparent_union attr(transparent_union)
+#define attr_unavailable attr(unavailable)
+#define attr_unavailable_msg(msg) attr(unavailable(msg))
+#define attr_fd_arg(n) attr(fd_arg(n))
+#define attr_fd_arg_read(n) attr(fd_arg_read(n))
+#define attr_fd_arg_write(n) attr(fd_arg_write(n))
+#define attr_flatten attr(flatten)
+#define attr_format(arch, fmt_index, first_index) attr(format(arch, fmt_index, first_index))
+#define attr_format_arg(fmt_index) attr(format_arg(fmt_index))
+#define attr_hot attr(hot)
+#define attr_interrupt_handler attr(interrupt_handler)
+#define attr_leaf attr(leaf)
+#define attr_malloc attr(malloc)
+#define attr_dealloc(dealloc, pos) attr(malloc(dealloc, pos))
+#define attr_noinline attr(noinline)
+#define attr_nonnull(...) attr(nonnull(__VA_ARGS__))
+#define attr_nonstring attr(nonstring)
+#define attr_noreturn attr(noreturn)
+#define attr_nothrow attr(nothrow)
+#define attr_pure attr(pure)
+#define attr_returns_nonnull attr(returns_nonnull)
+#define attr_unused attr(unused)
+#define attr_used attr(used)
+#define attr_warn_unused_result attr(warn_unused_result)
+#define attr_wur attr_warn_unused_result
+#define attr_fallthrough attr(fallthrough)
 
 #ifdef VAT_PRE_STDC23
-#define vat_gnu(x) __attribute__((x))
-#define vat_unused vat_gnu(unused)
-#define vat_noreturn vat_gnu(noreturn)
+#define attr_c23(x) /* c23 attribute (disabled) */
 #else
-#define vat_gnu(x) [[gnu::x]]
-#define vat_unused [[maybe_unused]]
-#define vat_noreturn [[gnu::noreturn]]
+#define attr_c23(x) [[x]] /* c23 attribute (enabled) */
 #endif
-
-#define vat_nonnull vat_gnu(nonnull)
-#define vat_nonnull_idx(...) vat_gnu(nonnull(__VA_ARGS__))
 
 #ifdef VAT_DEBUG
 #define vat_debug(fmt, ...) printf(fmt, ##__VA_ARGS__) /* vat debug printer (enabled) */
@@ -45,43 +85,39 @@
 #define vat_eq(lhs, rhs) (strcmp((lhs), (rhs)) == 0)
 #define vat_beg(lhs, rhs) (strncmp((lhs), (rhs), strlen((rhs))) == 0)
 
-vat_gnu(format(printf, 1, 2)) vat_noreturn
-void vat_error(char const* fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-	exit(EXIT_FAILURE);
-}
+#define vat_error(fmt, ...) do { fprintf(stderr, fmt, ##__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
+#define vat_perror(fmt, ...) do { fprintf(stderr, fmt, ##__VA_ARGS__); perror(NULL); exit(EXIT_FAILURE); } while (0)
+#define vat_alloc_error() vat_error("%s: alloc failed\n", STR(__func__))
 
-vat_noreturn
-void vat_alloc_error(void) { vat_error("%s: alloc failed\n", VAT_STR(__func__)); };
-
+attr_always_inline
 void vat_free(void* ptr) { free(ptr); }
 
-vat_gnu(malloc(vat_free))
-void* vat_malloc(size_t size) {
+attr_malloc attr_always_inline
+void* vat_xmalloc(size_t size) {
 	void* ptr = malloc(size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
 
-vat_gnu(malloc(vat_free))
-void* vat_calloc(size_t count, size_t size) {
+attr_malloc attr_always_inline
+void* vat_xcalloc(size_t count, size_t size) {
 	void* ptr = calloc(count, size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
 
-vat_gnu(malloc(vat_free))
-void* vat_realloc(void* ptr, size_t size) {
-	if (size == 0) return NULL;
+attr_always_inline
+void* vat_xrealloc(void* ptr, size_t size) {
+	if (size == 0) {
+		if (ptr != NULL) free(ptr);
+		return NULL;
+	}
 	ptr = realloc(ptr, size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
 
-vat_nonnull vat_noreturn
+attr_nonnull(1) attr_noreturn
 void vat_usage(char* name, bool failure) {
 	printf(
 		"Usage: %s <input file> [OPTIONS]\n"
@@ -92,13 +128,20 @@ void vat_usage(char* name, bool failure) {
 	exit(failure ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-vat_noreturn
+attr_noreturn
 void vat_version(void) {
 	printf("Version: alpha\n");
 	exit(EXIT_SUCCESS);
 }
 
-vat_nonnull
+attr_returns_nonnull attr_nonnull(1, 2)
+FILE* vat_xfopen(char const* restrict path, char const* restrict mode) {
+	FILE* stream = fopen(path, mode);
+	if (stream == NULL) vat_perror("failed to open file \"%s\"\n", path);
+	return stream;
+}
+
+attr_nonnull(1)
 void vat_cleanup_file(FILE** ptr) {
 	FILE* f = *ptr;
 	if (f == NULL || f == stdin || f == stdout || f == stderr) return;
@@ -106,4 +149,4 @@ void vat_cleanup_file(FILE** ptr) {
 	fclose(f);
 }
 
-#define vat_safe_file vat_gnu(cleanup(vat_cleanup_file)) FILE* /* GNU attribute cleanup with cleanup_file */
+#define vat_safe_file attr_cleanup(vat_cleanup_file) FILE* /* attribute cleanup with cleanup_file */
