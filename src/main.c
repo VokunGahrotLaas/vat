@@ -2,7 +2,7 @@
 #include "ast.h"
 
 int main(attr_unused int argc, attr_unused char** argv) {
-	vat_safe_file input = vat_xfopen("main.vat", "r");
+	VatFile_safe input = VatFile_open("main.vat", "r");
 	attr_unused vat_safe_file output = stdout;
 
 	/*
@@ -15,9 +15,11 @@ int main(attr_unused int argc, attr_unused char** argv) {
 	}
 	*/
 
-	VatAST* ast = VatAST_parse(input);
+	VatAst* ast = VatAst_parse(input);
 
-	VatAST_display(ast);
+	VatAst_display(ast, output); puts("");
+
+	VatAst_delete(ast);
 
 	return EXIT_SUCCESS;
 }

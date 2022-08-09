@@ -57,6 +57,9 @@
 #define attr_leaf attr(leaf)
 #define attr_malloc attr(malloc)
 #define attr_dealloc(dealloc, pos) attr(malloc(dealloc, pos))
+#define attr_dealloc_free attr_dealloc(free, 1)
+#define attr_dealloc_fclose attr_dealloc(fclose, 1)
+#define attr_dealloc_vat_free attr_dealloc(vat_free, 1)
 #define attr_noinline attr(noinline)
 #define attr_nonnull(...) attr(nonnull(__VA_ARGS__))
 #define attr_nonstring attr(nonstring)
@@ -89,30 +92,50 @@
 #define vat_perror(fmt, ...) do { fprintf(stderr, fmt, ##__VA_ARGS__); perror(NULL); exit(EXIT_FAILURE); } while (0)
 #define vat_alloc_error() vat_error("%s: alloc failed\n", STR(__func__))
 
-attr_always_inline
 void vat_free(void* ptr) { free(ptr); }
 
-attr_malloc attr_always_inline
+attr_malloc attr_dealloc_vat_free attr_wur
 void* vat_xmalloc(size_t size) {
 	void* ptr = malloc(size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
 
-attr_malloc attr_always_inline
+attr_malloc attr_dealloc_vat_free attr_wur
 void* vat_xcalloc(size_t count, size_t size) {
 	void* ptr = calloc(count, size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
 
-attr_always_inline
+attr_dealloc_vat_free attr_wur
 void* vat_xrealloc(void* ptr, size_t size) {
 	if (size == 0) {
 		if (ptr != NULL) free(ptr);
 		return NULL;
 	}
 	ptr = realloc(ptr, size);
+	if (ptr == NULL) vat_alloc_error();
+	return ptr;
+}
+
+attr_returns_nonnull attr_nonnull(1, 2) attr_dealloc_fclose attr_wur
+FILE* vat_xfopen(char const* restrict path, char const* restrict mode) {
+	FILE* stream = fopen(path, mode);
+	if (stream == NULL) vat_perror("failed to open file \"%s\"\n", path);
+	return stream;
+}
+
+attr_returns_nonnull attr_nonnull(1) attr_dealloc_vat_free attr_wur
+char* vat_xstrdup(char const* str) {
+	char* ptr = strdup(str);
+	if (ptr == NULL) vat_alloc_error();
+	return ptr;
+}
+
+attr_returns_nonnull attr_nonnull(1) attr_dealloc_vat_free attr_wur
+char* vat_xstrndup(char const* str, size_t size) {
+	char* ptr = strndup(str, size);
 	if (ptr == NULL) vat_alloc_error();
 	return ptr;
 }
@@ -134,13 +157,6 @@ void vat_version(void) {
 	exit(EXIT_SUCCESS);
 }
 
-attr_returns_nonnull attr_nonnull(1, 2)
-FILE* vat_xfopen(char const* restrict path, char const* restrict mode) {
-	FILE* stream = fopen(path, mode);
-	if (stream == NULL) vat_perror("failed to open file \"%s\"\n", path);
-	return stream;
-}
-
 attr_nonnull(1)
 void vat_cleanup_file(FILE** ptr) {
 	FILE* f = *ptr;
@@ -150,3 +166,13 @@ void vat_cleanup_file(FILE** ptr) {
 }
 
 #define vat_safe_file attr_cleanup(vat_cleanup_file) FILE* /* attribute cleanup with cleanup_file */
+
+#define vat_not_found ((size_t)-1)
+
+attr_nonnull(1)
+size_t vat_strip_end(char* str, bool (*pred)(char)) {
+	size_t i;
+	for (i = strlen(str); i > 0 && pred(str[i - 1]); --i) {}
+	str[i] = '\0';
+	return i;
+}
