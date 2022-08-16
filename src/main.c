@@ -17,7 +17,9 @@ int main(attr_unused int argc, attr_unused char** argv) {
 
 	VatAst* ast = VatAst_parse(input);
 
-	VatAst_display(ast, output); puts("");
+	vat_push_ast_node(((VatAstModule*)ast->root)->nodes, (VatAstNode*)VatAstSingleComment_new());
+
+	VatAst_display(ast, output);
 
 	VatAst_delete(ast);
 

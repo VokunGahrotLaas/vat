@@ -18,7 +18,7 @@ typedef struct VatFile {
 	FILE* stream;
 	size_t line;
 	size_t column;
-	bool opened;
+	bool owned;
 } VatFile;
 
 attr_nonnull(1) attr_pure attr_wur
@@ -40,7 +40,7 @@ VatFileMode VatFile_get_mode(char const* mode) {
 
 void VatFile_delete(VatFile* file) {
 	if (file == NULL) return;
-	if (file->opened) fclose(file->stream);
+	if (file->owned) fclose(file->stream);
 	vat_free(file->path);
 	vat_free(file);
 }
@@ -56,7 +56,7 @@ VatFile* VatFile_open(char const* restrict path, char const* restrict mode) {
 	file->stream = vat_xfopen(path, mode);
 	file->line = 1;
 	file->column = 0;
-	file->opened = true;
+	file->owned = true;
 	return file;
 }
 
@@ -68,7 +68,7 @@ VatFile* VatFile_new(FILE* stream, char const* restrict path, char const* restri
 	file->stream = stream;
 	file->line = 1;
 	file->column = 0;
-	file->opened = false;
+	file->owned = false;
 	return file;
 }
 

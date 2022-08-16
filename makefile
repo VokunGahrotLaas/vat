@@ -6,10 +6,10 @@ gprof_args = -b -p
 mode = release
 ifeq ($(mode),debug)
 MODEFLAGS = -g -DVAT_DEBUG
-O = 0
+O = g
 else ifeq ($(mode),gprof)
 MODEFLAGS = -g -pg -DVAT_DEBUG
-O = 0
+O = g
 else ifeq ($(mode),release)
 MODEFLAGS = -flto -s
 O = 2

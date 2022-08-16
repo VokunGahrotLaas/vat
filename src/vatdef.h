@@ -167,12 +167,9 @@ void vat_cleanup_file(FILE** ptr) {
 
 #define vat_safe_file attr_cleanup(vat_cleanup_file) FILE* /* attribute cleanup with cleanup_file */
 
-#define vat_not_found ((size_t)-1)
-
 attr_nonnull(1)
-size_t vat_strip_end(char* str, bool (*pred)(char)) {
-	size_t i;
-	for (i = strlen(str); i > 0 && pred(str[i - 1]); --i) {}
-	str[i] = '\0';
-	return i;
-}
+void vat_cleanup_free(void** ptr) { vat_free(*ptr); }
+
+#define vat_safe(type) attr_cleanup(vat_cleanup_free) type
+
+#define vat_not_found ((size_t)-1)

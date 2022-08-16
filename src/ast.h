@@ -3,6 +3,7 @@
 #include "vatdef.h"
 #include "file.h"
 #include "vector.h"
+#include "string.h"
 
 typedef struct VatAstNode VatAstNode;
 
@@ -91,6 +92,7 @@ void VatAstModule_display(VatAstNode* vself, FILE* out) {
 typedef struct VatAstSingleComment {
 	VatAstVtbl const* vtbl;
 	char* str;
+	char beg;
 } VatAstSingleComment;
 
 attr_returns_nonnull attr_dealloc(VatAstNode_delete, 1) attr_wur
@@ -114,7 +116,10 @@ VatAstSingleComment* VatAstSingleComment_new(void) {
 	return obj;
 }
 
-void VatAstSingleComment_ctor(VatAstSingleComment* self) { self->str = NULL; }
+void VatAstSingleComment_ctor(VatAstSingleComment* self) {
+	self->str = NULL;
+	self->beg = '\0';
+}
 
 void VatAstSingleComment_dtor(VatAstNode* vself) {
 	VatAstSingleComment* self = (VatAstSingleComment*)vself;
@@ -123,10 +128,12 @@ void VatAstSingleComment_dtor(VatAstNode* vself) {
 
 void VatAstSingleComment_display(VatAstNode* vself, FILE* out) {
 	VatAstSingleComment* self = (VatAstSingleComment*)vself;
-	if (self->str != NULL)
-		fprintf(out, "{ %s str=\"%s\" }", self->vtbl->name, self->str);
-	else
-		fprintf(out, "{ %s str=NULL }", self->vtbl->name);
+	fprintf(out, "{ %s str=", self->vtbl->name);
+	if (self->str != NULL) {
+		vat_safe_str esc = vat_escaped_str(self->str, vat_escaped_ascii);
+		fprintf(out, "\"%s\"", esc);
+	} else fputs("NULL", out);
+	fprintf(out, " char='%s' }", vat_escaped_ascii(self->beg));
 }
 
 bool vat_is_whitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
@@ -142,19 +149,19 @@ void* VatAst_parse_str(attr_unused VatFile* in) { return NULL; }
 attr_returns_nonnull attr_nonnull(1)
 void* VatAst_parse_char(attr_unused VatFile* in) { return NULL; }
 
-VatAstNode* VatAst_parse_single_comment(VatFile* in) {
+VatAstNode* VatAst_parse_single_comment(VatFile* in, char beg) {
 	VatFile_skip_predicate(in, vat_is_whitespace);
 	char* str = VatFile_gets_until_predicate(in, vat_is_newline);
 	vat_strip_end(str, vat_is_whitespace);
 	VatAstSingleComment* comment = VatAstSingleComment_new();
 	comment->str = str;
+	comment->beg = beg;
 	return (VatAstNode*)comment;
 }
 
 attr_returns_nonnull attr_nonnull(1)
 void* VatAst_parse_multi_comment(attr_unused VatFile* in) { return NULL; }
 
-#define vat_addr_temp(t, x) (&(struct {t _;}){(x)}._)
 #define vat_push_ast_node(list, node) VatVector_push(VatAstNode*, list, vat_addr_temp(VatAstNode*, node))
 
 attr_returns_nonnull attr_nonnull(1)
@@ -175,12 +182,12 @@ VatAstNode* VatAst_parse_module(attr_unused VatFile* in) {
 			// if (VatFile_eof(file)) vat_error("unexpected eof");
 			c = VatFile_get(in);
 			if (c == '/')
-				vat_push_ast_node(module->nodes, VatAst_parse_single_comment(in));
+				vat_push_ast_node(module->nodes, VatAst_parse_single_comment(in, c));
 			else if (c == '*')
 				vat_push_ast_node(module->nodes, VatAst_parse_multi_comment(in));
 			else vat_error("unexpected character '%c'\n", c);
 		} else if (c == '#') {
-			vat_push_ast_node(module->nodes, VatAst_parse_single_comment(in));
+			vat_push_ast_node(module->nodes, VatAst_parse_single_comment(in, c));
 		} else if (c == ';') {
 		} else vat_error("unexpected character '%c'\n", c);
 		// VatAstModule_display((VatAstNode*)module, stdout); puts("");
@@ -203,7 +210,7 @@ void VatAst_display(VatAst* ast, FILE* out) {
 		VatAstNode_display(ast->root, out);
 	else
 		fputs("NULL", out);
-	fputs(" }", out);
+	fputs(" }\n", out);
 }
 
 void VatAst_delete(VatAst* self) {
