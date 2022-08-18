@@ -48,3 +48,13 @@ void VatAstSingleComment_display(VatAstNode* vself, FILE* out) {
 	} else fputs("NULL", out);
 	fprintf(out, " char='%s' }", vat_escaped_ascii(self->beg));
 }
+
+VatAstNode* VatAst_parse_single_comment(VatFile* in, char beg) {
+	VatFile_skip_predicate(in, vat_is_whitespace);
+	char* str = VatFile_gets_until_predicate(in, vat_is_newline);
+	vat_strip_end(str, vat_is_whitespace);
+	VatAstSingleComment* comment = VatAstSingleComment_new();
+	comment->str = str;
+	comment->beg = beg;
+	return (VatAstNode*)comment;
+}
