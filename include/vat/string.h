@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vatdef.h"
-#include "vector.h"
+#include <vat/vatdef.h>
+#include <vat/vector.h>
 
 attr_nonnull(1)
 void vat_cleanup_str(char** ptr) { vat_free(*ptr); }

@@ -39,29 +39,36 @@ endif
 
 std = gnu2x
 
-CC = gcc
-CFLAGS = $(MODEFLAGS) -O$O -std=$(std) -Wall -Wextra
-
+INCLUDE_DIR = include
 SRC_DIR = src
+TMP_DIR = tmp
+EXEMPLE_DIR = exemple
+
+CC = gcc
+CFLAGS = $(MODEFLAGS) -O$O -I$(INCLUDE_DIR) -std=$(std) -Wall -Wextra
+
 SRC = $(SRC_DIR)/main.c
-OBJ = gmon.out
 EXEC = vat
 
-all: $(EXEC)
+all: $(TMP_DIR)/$(EXEC)
 
-$(EXEC): $(SRC)
+$(TMP_DIR):
+	mkdir -p $(TMP_DIR)
+
+$(TMP_DIR)/$(EXEC): $(SRC) | $(TMP_DIR)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-run: $(EXEC)
-	./$(EXEC) $(args)
+run: $(TMP_DIR)/$(EXEC)
+	cp $(EXEMPLE_DIR)/* $(TMP_DIR)/
+	cd $(TMP_DIR) && ./$(EXEC) $(args)
 
-gdb: $(EXEC)
-	gdb -q $(gdb_args) --args $(EXEC) $(args)
+gdb: $(TMP_DIR)/$(EXEC)
+	cd $(TMP_DIR) && gdb -q $(gdb_args) --args $(EXEC) $(args)
 
 gprof:
-	gprof $(gprof_args) $(EXEC) gmon.out
+	cd $(TMP_DIR) && gprof $(gprof_args) $(EXEC) gmon.out
 
 clean:
-	$(RM) $(EXEC) $(OBJ)
+	$(RM) -r $(TMP_DIR)
 
-.PHONY = run gdb gprof clean
+.PHONY = all run gdb gprof clean

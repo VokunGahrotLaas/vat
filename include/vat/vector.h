@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vatdef.h"
+#include <vat/vatdef.h>
 
 typedef struct VatVector {
 	size_t size;

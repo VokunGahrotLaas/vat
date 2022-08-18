@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vatdef.h"
-#include "vector.h"
+#include <vat/vatdef.h>
+#include <vat/vector.h>
 
 typedef enum VatFileMode {
 	VatFileMode_Read = 1,

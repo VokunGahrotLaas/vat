@@ -1,5 +1,5 @@
-#include "vatdef.h"
-#include "ast.h"
+#include <vat/vatdef.h>
+#include <vat/ast.h>
 
 int main(attr_unused int argc, attr_unused char** argv) {
 	VatFile_safe input = VatFile_open("main.vat", "r");
