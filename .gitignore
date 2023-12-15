@@ -1,7 +1,9 @@
 #~# Project
 
-tmp
-
+vat
+!include/vat
+build
+compile_flags.txt
 
 #~# C
 
