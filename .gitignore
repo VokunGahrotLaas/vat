@@ -1,7 +1,7 @@
 #~# Project
 
 vat
-!include/vat
+!lib/include/vat
 build
 compile_flags.txt
 

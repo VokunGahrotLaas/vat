@@ -1,31 +1,43 @@
 
 args =
+tests_args =
 gdb_args = -ex=r -ex=q
 build = build
-
 std = gnu++20
 
 CXX ?= g++
-CXXFLAGS = -O$O -Isrc -I${build}/src -std=${std} -Wall -Wextra -Wpedantic
+CXXFLAGS = -O$O -Ilib/include -I${build}/lib/include -std=${std} -Wall -Wextra -Wpedantic
 LDFLAGS = -O$O
 
 FLEX ?= flex
 FLEXFLAGS =
-FLEX_SRC = src/parser/lexer.ll
-FLEX_HEADER = ${build}/src/parser/lexer.ll.hh
-FLEX_OBJ = ${build}/src/parser/lexer.ll.cc
+FLEX_SRC = lib/src/parser/lexer.ll
+FLEX_HEADER = ${build}/lib/include/vat/parser/lexer.ll.hh
+FLEX_OUT = ${build}/lib/src/parser/lexer.ll.cc
+FLEX_OBJ = ${FLEX_OUT:.cc=.o}
 
 BISON ?= bison
 BISONFLAGS = -v #-Wcounterexamples
-BISON_SRC = src/parser/parser.yy
-BISON_HEADER = ${build}/src/parser/parser.yy.hh
-BISON_OBJ = ${build}/src/parser/parser.yy.cc
-BISON_OUTPUT = ${build}/src/parser/parser.yy.output
-BISON_LOCATION = ${build}/src/parser/location.hh
+BISON_SRC = lib/src/parser/parser.yy
+BISON_HEADER = ${build}/lib/include/vat/parser/parser.yy.hh
+BISON_OUTPUT = ${build}/lib/src/parser/parser.yy.output
+BISON_LOCATION = ${build}/lib/include/vat/parser/location.hh
+BISON_SRC_LOCATION = ${build}/lib/src/parser/location.hh
+BISON_OUT = ${build}/lib/src/parser/parser.yy.cc
+BISON_OBJ = ${BISON_OUT:.cc=.o}
 
-SRC = ${wildcard src/*.cc src/parser/*.cc src/ast/*.cc}
-OBJ = ${addprefix ${build}/,${SRC:.cc=.o}} ${FLEX_OBJ:.cc=.o} ${BISON_OBJ:.cc=.o}
+LIB_SRC = ${wildcard lib/src/*.cc lib/src/*/*.cc}
+LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
+LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
+LIB = ${build}/libvat.so
+
+SRC = ${wildcard src/*.cc src/*/*.cc}
+OBJ = ${addprefix ${build}/,${SRC:.cc=.o}}
 EXEC = ${build}/vat
+
+TESTS_SRC = ${wildcard tests/test_*.cc}
+TESTS_EXEC = ${addprefix ${build}/,${TESTS_SRC:.cc=}}
+TESTS_CHECK = ${addprefix check_,${TESTS_EXEC}}
 
 mode = release
 ifeq (${mode},debug)
@@ -61,46 +73,85 @@ RMDIR = rmdir --ignore-fail-on-non-empty
 
 all: $(EXEC)
 
-${build}/:
-	${MKDIR} $@src/parser
-	${MKDIR} $@src/ast
+.PHONY = all lib run gdb check clean phony_explicit
+phony_explicit:
+.WAIT:
 
-${build}/src/%.o: src/%.cc | ${FLEX_HEADER} ${BISON_HEADER} ${build}/
+lib: ${LIB}
+
+${build}/:
+	${MKDIR} $@lib/include/vat/ast
+	${MKDIR} $@lib/include/vat/parser
+	${MKDIR} $@lib/src/ast
+	${MKDIR} $@lib/src/parser
+	${MKDIR} $@src
+	${MKDIR} $@tests
+	${MKDIR} $@test_assets
+
+${BISON_LOCATION}: ${BISON_SRC_LOCATION}
+	cp $< $@
+
+${FLEX_OUT} ${FLEX_HEADER}: ${FLEX_SRC} | ${build}/
+	${FLEX} ${FLEXFLAGS} --header-file=${FLEX_HEADER} -o ${FLEX_OUT} $<
+
+${BISON_OUT} ${BISON_HEADER} ${BISON_SRC_LOCATION} ${BISON_OUTPUT}: ${BISON_SRC} | ${build}/
+	${BISON} ${BISONFLAGS} --defines=${BISON_HEADER} -o ${BISON_OUT} $<
+
+${FLEX_OBJ}: ${FLEX_OUT} | ${BISON_HEADER}
+	+${CXX} ${CXXFLAGS} -fPIC -o $@ -c $<
+
+${BISON_OBJ}: ${BISON_OUT} | ${FLEX_HEADER}
+	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parser -fPIC -o $@ -c $<
+
+${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc | ${LIB_HEADERS}
+	+${CXX} ${CXXFLAGS} -Wold-style-cast -fPIC -o $@ -c $<
+
+${build}/src/%.o: src/%.cc | ${LIB_HEADERS}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -o $@ -c $<
 
-${FLEX_OBJ:.cpp=}.o: ${FLEX_OBJ} | ${BISON_HEADER} ${build}/
-	+${CXX} ${CXXFLAGS} -o $@ -c $<
+${LIB}: ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ}
+	+${CXX} -shared -o $@ $^ ${LDFLAGS}
 
-${BISON_OBJ:.cpp=}.o: ${BISON_OBJ} | ${FLEX_HEADER} ${build}/
-	+${CXX} ${CXXFLAGS} -I${build}/src/parser -o $@ -c $<
+$(EXEC): ${OBJ} | ${LIB}
+	+${CXX} -o $@ $^ -L${build} -lvat ${LDFLAGS}
 
-${FLEX_OBJ} ${FLEX_HEADER}: ${FLEX_SRC} | ${build}/
-	${FLEX} ${FLEXFLAGS} --header-file=${FLEX_HEADER} -o ${FLEX_OBJ} $<
-
-${BISON_OBJ} ${BISON_HEADER}: ${BISON_SRC} | ${build}/
-	${BISON} ${BISONFLAGS} --defines=${BISON_HEADER} -o ${BISON_OBJ} $<
-
-$(EXEC): $(OBJ) | ${build}/
-	+${CXX} -o $@ $^ ${LDFLAGS}
+${build}/tests/%: tests/%.cc | ${LIB}
+	+${CXX} ${CXXFLAGS} -o $@ $< ${LIB} ${LDFLAGS}
 
 run: $(EXEC)
-	${prefix} ./$< ${args}
+	LD_LIBRARY_PATH=${build} ${prefix} ./$< ${args}
 
 gdb: ${EXEC}
 	${prefix} gdb -q $(gdb_args) --args $(EXEC) $(args)
 
+check_${build}/tests/%: ${build}/tests/% | ${LIB} phony_explicit
+	${prefix} ./$< ${tests_args}
+
+check: ${TESTS_EXEC} .WAIT ${TESTS_CHECK}
+
 clean:
-	${RM} ${EXEC} ${OBJ} ${FLEX_HEADER} ${FLEX_OBJ} ${BISON_HEADER} ${BISON_OBJ} ${BISON_OUTPUT} ${BISON_LOCATION}
+	${RM} ${EXEC} ${LIB} ${TESTS_EXEC} ${OBJ} ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ} ${FLEX_OUT} ${BISON_OUT} ${BISON_OUTPUT} ${LIB_HEADERS}
 ifneq (${realpath ${build}},${realpath .})
+	${RM} -r ${build}/test_assets/
 ifneq (${wildcard ${build}},)
 	${RMDIR} ${build}
 endif
-ifneq (${wildcard ${build}/src/ast},)
-	${RMDIR} -p ${build}/src/ast
+ifneq (${wildcard ${build}/lib/include/vat/ast},)
+	${RMDIR} -p ${build}/lib/include/vat/ast
 endif
-ifneq (${wildcard ${build}/src/parser},)
-	${RMDIR} -p ${build}/src/parser
+ifneq (${wildcard ${build}/lib/include/vat/parser},)
+	${RMDIR} -p ${build}/lib/include/vat/parser
+endif
+ifneq (${wildcard ${build}/lib/src/ast},)
+	${RMDIR} -p ${build}/lib/src/ast
+endif
+ifneq (${wildcard ${build}/lib/src/parser},)
+	${RMDIR} -p ${build}/lib/src/parser
+endif
+ifneq (${wildcard ${build}/src},)
+	${RMDIR} -p ${build}/src
+endif
+ifneq (${wildcard ${build}/tests},)
+	${RMDIR} -p ${build}/tests
 endif
 endif
-
-.PHONY = all run gdb clean

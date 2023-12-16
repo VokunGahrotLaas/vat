@@ -2,9 +2,9 @@
 #include <iostream>
 
 // vat
-#include "ast/compute_visitor.hh"
-#include "ast/print_visitor.hh"
-#include "parser/parser.hh"
+#include <vat/ast/compute_visitor.hh>
+#include <vat/ast/print_visitor.hh>
+#include <vat/parser/parser.hh>
 
 int main(int argc, char** argv)
 {
