@@ -15,24 +15,45 @@ void PrintVisitor::operator()(Ast const& ast) { ast.accept(*this); }
 
 void PrintVisitor::operator()(Exp const& exp) { exp.accept(*this); }
 
+void PrintVisitor::operator()(AssignExp const& assign_exp)
+{
+	if (explicit_perens_) os_ << '(';
+	assign_exp.name().accept(*this);
+	os_ << " := ";
+	assign_exp.value().accept(*this);
+	if (explicit_perens_) os_ << ')';
+}
+
+void PrintVisitor::operator()(SeqExp const& seq_exp)
+{
+	std::vector<SharedConstExp> exps = seq_exp.exps();
+	auto it = exps.begin();
+	if (it != exps.end()) (*it++)->accept(*this);
+	while (it != exps.end())
+	{
+		os_ << ' ';
+		(*it++)->accept(*this);
+	}
+}
+
 void PrintVisitor::operator()(Number const& number) { os_ << number.value(); }
 
 void PrintVisitor::operator()(Name const& name) { os_ << name.value(); }
 
-void PrintVisitor::operator()(UnaryOp const& un_op)
+void PrintVisitor::operator()(UnaryOp const& unary_op)
 {
 	if (explicit_perens_) os_ << '(';
-	os_ << un_op.oper();
-	un_op.value().accept(*this);
+	os_ << unary_op.oper();
+	unary_op.value().accept(*this);
 	if (explicit_perens_) os_ << ')';
 }
 
-void PrintVisitor::operator()(BinaryOp const& bin_op)
+void PrintVisitor::operator()(BinaryOp const& binary_op)
 {
 	if (explicit_perens_) os_ << '(';
-	bin_op.lhs().accept(*this);
-	os_ << ' ' << bin_op.oper() << ' ';
-	bin_op.rhs().accept(*this);
+	binary_op.lhs().accept(*this);
+	os_ << ' ' << binary_op.oper() << ' ';
+	binary_op.rhs().accept(*this);
 	if (explicit_perens_) os_ << ')';
 }
 

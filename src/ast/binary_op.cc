@@ -3,7 +3,7 @@
 namespace vat::ast
 {
 
-BinaryOp::BinaryOp(Location const& location, std::string_view oper, std::shared_ptr<Exp> lhs, std::shared_ptr<Exp> rhs)
+BinaryOp::BinaryOp(Location const& location, std::string_view oper, SharedExp lhs, SharedExp rhs)
 	: Exp{ location }
 	, oper_{ oper }
 	, lhs_{ std::move(lhs) }

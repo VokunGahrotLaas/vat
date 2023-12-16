@@ -17,7 +17,7 @@ public:
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
 
-	std::string_view value() const;
+	std::string const& value() const;
 
 private:
 	std::string value_;

@@ -4,7 +4,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
 
 // vat
 #include "ast/fwd.hh"
@@ -27,24 +26,20 @@ public:
 	Lexer& lexer();
 	parser::location& location();
 
-	std::shared_ptr<ast::Ast> get_result();
-	void set_result(std::shared_ptr<ast::Ast> result);
-
-	std::shared_ptr<ast::Exp> get_variable(std::string const& name) const;
-	void set_variable(std::string const& name, std::shared_ptr<ast::Exp> value);
+	ast::SharedAst get_result();
+	void set_result(ast::SharedAst result);
 
 private:
 	std::string filename_;
 	bool trace_parsing_;
 	bool trace_scanning_;
-	std::unordered_map<std::string, std::shared_ptr<ast::Exp>> variables_{};
 	parser::location loc_;
 	std::istream* is_{ nullptr };
 	std::ostream* os_{ nullptr };
 	std::unique_ptr<Lexer> lexer_;
 	bool finished_{ false };
 	bool success_{ false };
-	std::shared_ptr<ast::Ast> result_{};
+	ast::SharedAst result_{};
 };
 
 } // namespace vat::parser

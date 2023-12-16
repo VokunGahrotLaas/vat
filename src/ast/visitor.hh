@@ -17,6 +17,8 @@ public:
 
 	virtual void operator()(Const<Ast>&) = 0;
 	virtual void operator()(Const<Exp>&) = 0;
+	virtual void operator()(Const<AssignExp>&) = 0;
+	virtual void operator()(Const<SeqExp>&) = 0;
 	virtual void operator()(Const<Number>&) = 0;
 	virtual void operator()(Const<Name>&) = 0;
 	virtual void operator()(Const<UnaryOp>&) = 0;

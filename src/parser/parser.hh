@@ -3,6 +3,7 @@
 // STL
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 
 // vat
 #include "parser/driver.hh"

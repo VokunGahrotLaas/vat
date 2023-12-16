@@ -13,7 +13,7 @@ namespace vat::ast
 class BinaryOp : public Exp
 {
 public:
-	BinaryOp(Location const& location, std::string_view oper, std::shared_ptr<Exp> lhs, std::shared_ptr<Exp> rhs);
+	BinaryOp(Location const& location, std::string_view oper, SharedExp lhs, SharedExp rhs);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
@@ -27,8 +27,8 @@ public:
 
 private:
 	std::string oper_;
-	std::shared_ptr<Exp> lhs_;
-	std::shared_ptr<Exp> rhs_;
+	SharedExp lhs_;
+	SharedExp rhs_;
 };
 
 } // namespace vat::ast

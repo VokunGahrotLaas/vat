@@ -3,7 +3,7 @@
 namespace vat::ast
 {
 
-UnaryOp::UnaryOp(Location const& location, std::string_view oper, std::shared_ptr<Exp> value)
+UnaryOp::UnaryOp(Location const& location, std::string_view oper, SharedExp value)
 	: Exp{ location }
 	, oper_{ oper }
 	, value_{ std::move(value) }

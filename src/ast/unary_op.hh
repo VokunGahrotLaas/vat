@@ -13,7 +13,7 @@ namespace vat::ast
 class UnaryOp : public Exp
 {
 public:
-	UnaryOp(Location const& location, std::string_view oper, std::shared_ptr<Exp> value);
+	UnaryOp(Location const& location, std::string_view oper, SharedExp value);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
@@ -23,7 +23,7 @@ public:
 
 private:
 	std::string oper_;
-	std::shared_ptr<Exp> value_;
+	SharedExp value_;
 };
 
 } // namespace vat::ast
