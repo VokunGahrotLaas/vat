@@ -26,18 +26,24 @@ BISON_SRC_LOCATION = ${build}/lib/src/parser/location.hh
 BISON_OUT = ${build}/lib/src/parser/parser.yy.cc
 BISON_OBJ = ${BISON_OUT:.cc=.o}
 
-LIB_SRC = ${wildcard lib/src/*.cc lib/src/*/*.cc}
+LIB_DIRS = lib/src/ast lib/src/parser lib/src
+LIB_SRC = ${wildcard ${addsuffix /*.cc,${LIB_DIRS}}}
 LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
 LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
 LIB = ${build}/libvat.so
 
-SRC = ${wildcard src/*.cc src/*/*.cc}
+DIRS = src
+SRC = ${wildcard ${addsuffix /*.cc,${DIRS}}}
 OBJ = ${addprefix ${build}/,${SRC:.cc=.o}}
 EXEC = ${build}/vat
 
-TESTS_SRC = ${wildcard tests/test_*.cc}
+TESTS_DIRS = tests
+TESTS_SRC = ${wildcard ${addsuffix /test_*.cc,${TESTS_DIRS}}}
 TESTS_EXEC = ${addprefix ${build}/,${TESTS_SRC:.cc=}}
 TESTS_CHECK = ${addprefix check_,${TESTS_EXEC}}
+
+BUILD_DIRS = ${addprefix ${build}/,${DIRS} ${LIB_DIRS} ${TESTS_DIRS} lib/include/vat/parser}
+CLEAN_DIRS = ${addprefix clean_,${BUILD_DIRS}}
 
 mode = release
 ifeq (${mode},debug)
@@ -68,45 +74,37 @@ else ifneq (${sanitize},false)
 ${error "sanitize should be true or false"}
 endif
 
-MKDIR = mkdir -p
-RMDIR = rmdir --ignore-fail-on-non-empty
-
 all: $(EXEC)
 
-.PHONY = all lib run gdb check clean phony_explicit
 phony_explicit:
+.PHONY = all phony_explicit lib run gdb check clean_files clean
 .WAIT:
 
 lib: ${LIB}
 
-${build}/:
-	${MKDIR} $@lib/include/vat/ast
-	${MKDIR} $@lib/include/vat/parser
-	${MKDIR} $@lib/src/ast
-	${MKDIR} $@lib/src/parser
-	${MKDIR} $@src
-	${MKDIR} $@tests
-	${MKDIR} $@test_assets
+${BUILD_DIRS}: %:
+	@mkdir -p $@
 
-${BISON_LOCATION}: ${BISON_SRC_LOCATION}
-	cp $< $@
+${CLEAN_DIRS}: clean_%: phony_explicit
+	@if [ -d $* ]; then rmdir --ignore-fail-on-non-empty -p $*; fi
 
-${FLEX_OUT} ${FLEX_HEADER}: ${FLEX_SRC} | ${build}/
+${FLEX_OUT}: ${FLEX_SRC} | ${BUILD_DIRS}
 	${FLEX} ${FLEXFLAGS} --header-file=${FLEX_HEADER} -o ${FLEX_OUT} $<
 
-${BISON_OUT} ${BISON_HEADER} ${BISON_SRC_LOCATION} ${BISON_OUTPUT}: ${BISON_SRC} | ${build}/
+${BISON_OUT}: ${BISON_SRC} | ${BUILD_DIRS}
 	${BISON} ${BISONFLAGS} --defines=${BISON_HEADER} -o ${BISON_OUT} $<
+	mv ${BISON_SRC_LOCATION} ${BISON_LOCATION}
 
-${FLEX_OBJ}: ${FLEX_OUT} | ${BISON_HEADER}
-	+${CXX} ${CXXFLAGS} -fPIC -o $@ -c $<
+${FLEX_OBJ}: ${FLEX_OUT} ${BISON_OUT}
+	+${CXX} ${CXXFLAGS} -fPIC -o $@ -c ${FLEX_OUT}
 
-${BISON_OBJ}: ${BISON_OUT} | ${FLEX_HEADER}
-	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parser -fPIC -o $@ -c $<
+${BISON_OBJ}: ${FLEX_OUT} ${BISON_OUT}
+	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parser -fPIC -o $@ -c ${BISON_OUT}
 
-${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc | ${LIB_HEADERS}
+${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -fPIC -o $@ -c $<
 
-${build}/src/%.o: src/%.cc | ${LIB_HEADERS}
+${build}/src/%.o: src/%.cc ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -o $@ -c $<
 
 ${LIB}: ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ}
@@ -124,34 +122,12 @@ run: $(EXEC)
 gdb: ${EXEC}
 	${prefix} gdb -q $(gdb_args) --args $(EXEC) $(args)
 
-check_${build}/tests/%: ${build}/tests/% | ${LIB} phony_explicit
+check_${build}/tests/%: ${build}/tests/% ${LIB} phony_explicit
 	${prefix} ./$< ${tests_args}
 
 check: ${TESTS_EXEC} .WAIT ${TESTS_CHECK}
 
-clean:
+clean_files:
 	${RM} ${EXEC} ${LIB} ${TESTS_EXEC} ${OBJ} ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ} ${FLEX_OUT} ${BISON_OUT} ${BISON_OUTPUT} ${LIB_HEADERS}
-ifneq (${realpath ${build}},${realpath .})
-	${RM} -r ${build}/test_assets/
-ifneq (${wildcard ${build}},)
-	${RMDIR} ${build}
-endif
-ifneq (${wildcard ${build}/lib/include/vat/ast},)
-	${RMDIR} -p ${build}/lib/include/vat/ast
-endif
-ifneq (${wildcard ${build}/lib/include/vat/parser},)
-	${RMDIR} -p ${build}/lib/include/vat/parser
-endif
-ifneq (${wildcard ${build}/lib/src/ast},)
-	${RMDIR} -p ${build}/lib/src/ast
-endif
-ifneq (${wildcard ${build}/lib/src/parser},)
-	${RMDIR} -p ${build}/lib/src/parser
-endif
-ifneq (${wildcard ${build}/src},)
-	${RMDIR} -p ${build}/src
-endif
-ifneq (${wildcard ${build}/tests},)
-	${RMDIR} -p ${build}/tests
-endif
-endif
+
+clean: clean_files .WAIT ${CLEAN_DIRS}
