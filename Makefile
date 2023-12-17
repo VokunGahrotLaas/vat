@@ -5,6 +5,8 @@ gdb_args = -ex=r -ex=q
 build = build
 std = gnu++20
 
+PREFIX ?= /usr/local
+
 CXX ?= g++
 CXXFLAGS = -O$O -Ilib/include -I${build}/lib/include -std=${std} -Wall -Wextra -Wpedantic
 LDFLAGS = -O$O
@@ -77,7 +79,7 @@ endif
 all: $(EXEC)
 
 phony_explicit:
-.PHONY = all phony_explicit lib run gdb check clean_files clean
+.PHONY = all phony_explicit lib run gdb check install uninstall clean_files clean
 .WAIT:
 
 lib: ${LIB}
@@ -117,15 +119,27 @@ ${build}/tests/%: tests/%.cc | ${LIB}
 	+${CXX} ${CXXFLAGS} -o $@ $< ${LIB} ${LDFLAGS}
 
 run: $(EXEC)
-	LD_LIBRARY_PATH=${build} ${prefix} ./$< ${args}
+	LD_LIBRARY_PATH=${build} ./$< ${args}
 
 gdb: ${EXEC}
-	${prefix} gdb -q $(gdb_args) --args $(EXEC) $(args)
+	LD_LIBRARY_PATH=${build} gdb -q $(gdb_args) --args $(EXEC) $(args)
 
 check_${build}/tests/%: ${build}/tests/% ${LIB} phony_explicit
-	${prefix} ./$< ${tests_args}
+	./$< ${tests_args}
 
 check: ${TESTS_EXEC} .WAIT ${TESTS_CHECK}
+
+install: ${LIB} ${EXEC}
+	install -d ${PREFIX}/include
+	cp -r lib/include/vat ${PREFIX}/include
+	cp -r ${build}/lib/include/vat ${PREFIX}/include
+	install -Dm755 ${LIB} -t ${PREFIX}/lib
+	install -Dm755 ${EXEC} -t ${PREFIX}/bin
+
+uninstall:
+	${RM} -r ${PREFIX}/include/vat
+	${RM} ${PREFIX}/lib/libvat.so
+	${RM} ${PREFIX}/bin/vat
 
 clean_files:
 	${RM} ${EXEC} ${LIB} ${TESTS_EXEC} ${OBJ} ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ} ${FLEX_OUT} ${BISON_OUT} ${BISON_OUTPUT} ${LIB_HEADERS}

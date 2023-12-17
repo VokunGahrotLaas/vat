@@ -19,7 +19,7 @@ void PrintVisitor::operator()(AssignExp const& assign_exp)
 {
 	if (explicit_perens_) os_ << '(';
 	assign_exp.name().accept(*this);
-	os_ << " := ";
+	os_ << " = ";
 	assign_exp.value().accept(*this);
 	if (explicit_perens_) os_ << ')';
 }
@@ -31,7 +31,7 @@ void PrintVisitor::operator()(SeqExp const& seq_exp)
 	if (it != exps.end()) (*it++)->accept(*this);
 	while (it != exps.end())
 	{
-		os_ << ' ';
+		os_ << ';' << std::endl;
 		(*it++)->accept(*this);
 	}
 }

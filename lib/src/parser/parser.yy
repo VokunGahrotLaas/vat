@@ -38,14 +38,18 @@
 
   using namespace vat::ast;
 
-  #define LOC std::cref(driver.location())
-
 	#undef yylex
 	#define yylex driver.lexer().yylex
 }
 
+// keywords
 %token
-  <std::string> ASSIGN  ":="
+  FN "fn"
+;
+
+// operators
+%token
+  <std::string> ASSIGN  "="
   <std::string> MINUS   "-"
   <std::string> PLUS    "+"
   <std::string> STAR    "*"
@@ -55,11 +59,15 @@
   <std::string> POWER   "**"
 ;
 
-%token <std::string> IDENTIFIER "identifier"
-%token <int> NUMBER "number"
+// variables
+%token
+  <std::string> IDENTIFIER "identifier"
+  <int> NUMBER "number"
+;
 
-%nterm <std::vector<vat::ast::SharedExp>> assignments
-%nterm <vat::ast::SharedAssignExp> assignment
+%token EOF 0 "end of file"
+
+%nterm <std::vector<vat::ast::SharedExp>> exps
 %nterm <vat::ast::SharedExp> exp nu_exp simple_exp
 %nterm <vat::ast::SharedName> name
 
@@ -85,52 +93,49 @@
 } <std::vector<vat::ast::SharedExp>>;
 
 %%
-
-%start unit;
-unit:
-  assignments nu_exp { $1.push_back($2); driver.set_result(std::make_shared<SeqExp>(LOC, std::move($1))); }
-| exp                { driver.set_result($1); }
+%start input;
+input:
+  exps { driver.set_result(std::make_shared<SeqExp>(@$, std::move($1))); }
+| exp  { driver.set_result($1); }
 ;
 
-assignments:
-  assignments assignment { $$ = std::move($1); $$.push_back($2); }
-| assignment             { $$ = std::vector<SharedExp>{$1}; }
-;
-
-assignment:
-  name ":=" exp { $$ = std::make_shared<AssignExp>(LOC, $1, $3); }
+exps:
+  exps ";" exp { $$ = std::move($1); $$.push_back($3); }
+| exps nu_exp { $$ = std::move($1); $$.push_back($2); }
+| exp ";" exp  { $$ = std::vector<SharedExp>{$1, $3}; }
+| exp nu_exp  { $$ = std::vector<SharedExp>{$1, $2}; }
 ;
 
 exp:
-  exp "+" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| exp "-" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| exp "*" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| exp "/" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| "-" exp %prec NEG { $$ = std::make_shared<UnaryOp>(LOC, $1, $2); }
-| "+" exp %prec POS { $$ = std::make_shared<UnaryOp>(LOC, $1, $2); }
-| exp "**" exp      { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
+  name "=" exp      { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
+| exp "+" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| exp "-" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| exp "*" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| exp "/" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| "-" exp %prec NEG { $$ = std::make_shared<UnaryOp>(@$, $1, $2); }
+| "+" exp %prec POS { $$ = std::make_shared<UnaryOp>(@$, $1, $2); }
+| exp "**" exp      { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
 | simple_exp
 ;
 
 nu_exp:
-  nu_exp "+" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| nu_exp "-" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| nu_exp "*" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| nu_exp "/" exp       { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
-| nu_exp "**" exp      { $$ = std::make_shared<BinaryOp>(LOC, $2, $1, $3); }
+  nu_exp "+" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| nu_exp "-" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| nu_exp "*" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| nu_exp "/" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
+| nu_exp "**" exp      { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
 | simple_exp
 ;
 
 simple_exp:
-  NUMBER            { $$ = std::make_shared<Number>(LOC, $1); }
+  NUMBER            { $$ = std::make_shared<Number>(@$, $1); }
 | name              { $$ = $1; }
 | "(" exp ")"       { $$ = $2; }
 ;
 
 name:
-  IDENTIFIER      { $$ = std::make_shared<Name>(LOC, $1); }
+  IDENTIFIER      { $$ = std::make_shared<Name>(@$, $1); }
 ;
-
 %%
 
 void vat::parser::yyParser::error(const location_type& l, const std::string& m)

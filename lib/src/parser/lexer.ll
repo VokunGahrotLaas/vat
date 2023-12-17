@@ -24,9 +24,10 @@
 	vat::parser::yyParser::symbol_type make_NUMBER(const std::string &s, const vat::parser::yyParser::location_type& loc);
 %}
 
-id    [a-zA-Z][a-zA-Z_0-9]*
-int   [0-9]+
-blank [ \t\r]
+id     [a-zA-Z_][a-zA-Z_0-9]*
+inv_id [0-9][a-zA-Z_][a-zA-Z_0-9]*
+int    [0-9]+
+blank  [ \t\r]
 
 %%
 %{
@@ -37,7 +38,9 @@ blank [ \t\r]
 %}
 
 {blank}+   loc.step();
-\n+        loc.lines(yyleng); loc.step();
+\n+        loc.lines(YYLeng()); loc.step();
+
+"fn"       return MAKE_TOKEN_NOARG(FN);
 
 "-"        return MAKE_TOKEN(MINUS, YYText());
 "+"        return MAKE_TOKEN(PLUS, YYText());
@@ -45,15 +48,17 @@ blank [ \t\r]
 "/"        return MAKE_TOKEN(SLASH, YYText());
 "("        return MAKE_TOKEN(LPAREN, YYText());
 ")"        return MAKE_TOKEN(RPAREN, YYText());
-":="       return MAKE_TOKEN(ASSIGN, YYText());
+"="        return MAKE_TOKEN(ASSIGN, YYText());
 "**"       return MAKE_TOKEN(POWER, YYText());
 
+{inv_id}   throw vat::parser::yyParser::syntax_error(loc, "invalid identifier: " + std::string(YYText()));
 {int}      return make_NUMBER(YYText(), loc);
 {id}       return MAKE_TOKEN(IDENTIFIER, YYText());
 
 .          throw vat::parser::yyParser::syntax_error(loc, "invalid character: " + std::string(YYText()));
 
-<<EOF>>    return MAKE_TOKEN_NOARG(YYEOF);
+<<EOF>>    return MAKE_TOKEN_NOARG(EOF);
+
 %%
 
 vat::parser::yyParser::symbol_type make_NUMBER(const std::string &s, const vat::parser::yyParser::location_type& loc)
