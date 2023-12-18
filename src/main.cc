@@ -2,16 +2,19 @@
 #include <iostream>
 
 // vat
-#include <vat/ast/compute_visitor.hh>
+#include <variant>
 #include <vat/ast/print_visitor.hh>
+#include <vat/eval/ast.hh>
 #include <vat/parser/parser.hh>
+
+#include "vat/ast/fwd.hh"
 
 int main(int argc, char** argv)
 {
 	int res = 0;
 	vat::parser::Parser parser;
 	vat::ast::PrintVisitor pv{ std::cout, true };
-	vat::ast::ComputeVisitor cv;
+	vat::eval::AstEvaluator ae;
 	for (int i = 1; i < argc; ++i)
 		if (argv[i] == std::string("-p"))
 			parser.set_trace_parsing(true);
@@ -21,13 +24,14 @@ int main(int argc, char** argv)
 		{
 			pv(*ast);
 			std::cout << std::endl;
-			cv(*ast);
-			auto result = cv.result();
-			if (result)
-				std::cout << "result: " << *result << std::endl;
+			auto result = ae.eval(*ast);
+			if (auto value = std::get_if<int>(&result))
+				std::cout << "result: (int) " << *value << std::endl;
+			else if (std::holds_alternative<vat::ast::SharedConstFnExp>(result))
+				std::cout << "result: (fn)" << std::endl;
 			else
 				std::cout << "runtime error" << std::endl;
-			cv.reset_variables();
+			ae.reset();
 		}
 		else
 			res = 1;

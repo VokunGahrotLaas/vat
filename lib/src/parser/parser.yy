@@ -49,32 +49,40 @@
 
 // operators
 %token
-  <std::string> ASSIGN  "="
-  <std::string> MINUS   "-"
-  <std::string> PLUS    "+"
-  <std::string> STAR    "*"
-  <std::string> SLASH   "/"
-  <std::string> LPAREN  "("
-  <std::string> RPAREN  ")"
-  <std::string> POWER   "**"
+  <std::string> ASSIGN    "="
+  <std::string> MINUS     "-"
+  <std::string> PLUS      "+"
+  <std::string> STAR      "*"
+  <std::string> SLASH     "/"
+  <std::string> MOD       "%"
+  <std::string> POWER     "**"
+  <std::string> SEMICOLON ";"
+  <std::string> COMMA     ","
+  <std::string> LPAREN    "("
+  <std::string> RPAREN    ")"
+  <std::string> LBRACE    "{"
+  <std::string> RBRACE    "}"
 ;
 
-// variables
+// exps
 %token
   <std::string> IDENTIFIER "identifier"
   <int> NUMBER "number"
 ;
 
-%token EOF 0 "end of file"
+%token EOF 0 "end of file";
 
-%nterm <std::vector<vat::ast::SharedExp>> exps
-%nterm <vat::ast::SharedExp> exp nu_exp simple_exp
-%nterm <vat::ast::SharedName> name
+%nterm <vat::ast::SharedSeqExp> exps_plural seq_exp fn_args fn_args.rec;
+%nterm <vat::ast::SharedExp> exps exp rhs_exp block_exp;
+%nterm <vat::ast::SharedName> name lhs_exp;
 
+%left ";"
+%left "=";
 %left "+" "-";
-%left "*" "/";
+%left "*" "/" "%";
 %precedence POS NEG;
 %right "**";
+%precedence CALL;
 
 %printer { driver.yyout() << $$; } <std::string> <int>;
 %printer {
@@ -85,56 +93,69 @@
     driver.yyout() << "(nullptr)";
   }
 } <vat::ast::SharedExp>;
-%printer {
-  driver.yyout() << '{';
-  for (auto const& e : $$)
-    driver.yyout() << e << ',';
-  driver.yyout() << '}';
-} <std::vector<vat::ast::SharedExp>>;
 
 %%
 %start input;
-input:
-  exps { driver.set_result(std::make_shared<SeqExp>(@$, std::move($1))); }
-| exp  { driver.set_result($1); }
-;
+input: exps { driver.set_result($1); };
 
 exps:
-  exps ";" exp { $$ = std::move($1); $$.push_back($3); }
-| exps nu_exp { $$ = std::move($1); $$.push_back($2); }
-| exp ";" exp  { $$ = std::vector<SharedExp>{$1, $3}; }
-| exp nu_exp  { $$ = std::vector<SharedExp>{$1, $2}; }
+  exps_plural { $$ = $1; }
+| exp
+;
+
+exps_plural:
+  exps_plural ";" exp { $$ = $1; $$->location(@$); $$->push_back($3); }
+| exp ";" exp        { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1, $3}); }
+;
+
+seq_exp:
+  %empty { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{}); }
+| exp    { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1}); }
+| exps_plural
 ;
 
 exp:
-  name "=" exp      { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
-| exp "+" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| exp "-" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| exp "*" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| exp "/" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| "-" exp %prec NEG { $$ = std::make_shared<UnaryOp>(@$, $1, $2); }
-| "+" exp %prec POS { $$ = std::make_shared<UnaryOp>(@$, $1, $2); }
-| exp "**" exp      { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| simple_exp
+  rhs_exp
+| lhs_exp { $$ = $1; }
 ;
 
-nu_exp:
-  nu_exp "+" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| nu_exp "-" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| nu_exp "*" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| nu_exp "/" exp       { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| nu_exp "**" exp      { $$ = std::make_shared<BinaryOp>(@$, $2, $1, $3); }
-| simple_exp
+rhs_exp:
+  "fn" name "(" fn_args ")" block_exp { $$ = std::make_shared<AssignExp>(@$, $2, std::make_shared<FnExp>(@$, $4, $6)); }
+| "fn" "(" fn_args ")" block_exp      { $$ = std::make_shared<FnExp>(@$, $3, $5); }
+| lhs_exp "=" exp                     { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
+| exp "+" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Add, $1, $3); }
+| exp "-" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Sub, $1, $3); }
+| exp "*" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Mul, $1, $3); }
+| exp "/" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Div, $1, $3); }
+| exp "%" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Mod, $1, $3); }
+| "-" exp %prec NEG                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Neg, $2); }
+| "+" exp %prec POS                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Pos, $2); }
+| exp "**" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Pow, $1, $3); }
+| lhs_exp "(" seq_exp ")" %prec CALL  { $$ = std::make_shared<CallExp>(@$, $1, $3); }
+| "(" rhs_exp ")"                     { $$ = $2; }
+| NUMBER                              { $$ = std::make_shared<Number>(@$, $1); }
+| block_exp
 ;
 
-simple_exp:
-  NUMBER            { $$ = std::make_shared<Number>(@$, $1); }
-| name              { $$ = $1; }
-| "(" exp ")"       { $$ = $2; }
+lhs_exp:
+  name            { $$ = $1; }
+| "(" lhs_exp ")" { $$ = $2; }
 ;
+
+block_exp: "{" exps "}" { $$ = $2; };
 
 name:
   IDENTIFIER      { $$ = std::make_shared<Name>(@$, $1); }
+;
+
+fn_args:
+  %empty      { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{}); }
+| fn_args.rec
+;
+
+fn_args.rec:
+  name             { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1}); }
+| fn_args "," name { $$ = $1; $$->location(@$); $$->push_back($3); }
 ;
 %%
 

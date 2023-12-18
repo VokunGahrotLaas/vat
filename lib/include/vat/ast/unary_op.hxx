@@ -5,8 +5,20 @@
 namespace vat::ast
 {
 
-inline std::string_view UnaryOp::oper() const { return oper_; }
+inline auto UnaryOp::oper() const -> Oper { return oper_; }
 
 inline Exp& UnaryOp::value() const { return *value_; }
+
+constexpr std::string_view UnaryOp::str(Oper oper)
+{
+	switch (oper) {
+	case Pos:
+		return "+";
+	case Neg:
+		return "-";
+	default:
+		return "[[UnaryOp: unnamed]]";
+	}
+}
 
 } // namespace vat::ast

@@ -22,10 +22,13 @@ public:
 	void operator()(Name const& name) override;
 	void operator()(UnaryOp const& unary_op) override;
 	void operator()(BinaryOp const& binary_op) override;
+	void operator()(FnExp const& fn_exp) override;
+	void operator()(CallExp const& call_exp) override;
 
 private:
 	std::ostream& os_;
 	bool explicit_perens_;
+	std::size_t indent_{};
 };
 
 } // namespace vat::ast

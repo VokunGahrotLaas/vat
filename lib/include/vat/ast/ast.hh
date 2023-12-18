@@ -1,16 +1,14 @@
 #pragma once
 
-// STL
-#include <memory>
-
 // vat
+#include <memory>
 #include <vat/ast/location.hh>
 #include <vat/ast/visitor.hh>
 
 namespace vat::ast
 {
 
-class Ast
+class Ast : public std::enable_shared_from_this<Ast>
 {
 public:
 	explicit Ast(Location const& location);
@@ -24,6 +22,7 @@ public:
 	virtual void accept(ConstVisitor&) const = 0;
 
 	Location const& location() const;
+	void location(Location const& location);
 
 private:
 	Location location_;

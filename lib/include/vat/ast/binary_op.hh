@@ -1,7 +1,6 @@
 #pragma once
 
 // STL
-#include <memory>
 #include <string_view>
 
 // vat
@@ -13,20 +12,32 @@ namespace vat::ast
 class BinaryOp : public Exp
 {
 public:
-	BinaryOp(Location const& location, std::string_view oper, SharedExp lhs, SharedExp rhs);
+	enum Oper
+	{
+		Add,
+		Sub,
+		Mul,
+		Div,
+		Mod,
+		Pow,
+	};
+
+	BinaryOp(Location const& location, Oper oper, SharedExp lhs, SharedExp rhs);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
 
-	std::string_view oper() const;
+	Oper oper() const;
 	Exp const& lhs() const;
 	Exp const& rhs() const;
 
 	Exp& lhs();
 	Exp& rhs();
 
+	static constexpr std::string_view str(Oper oper);
+
 private:
-	std::string oper_;
+	Oper oper_;
 	SharedExp lhs_;
 	SharedExp rhs_;
 };

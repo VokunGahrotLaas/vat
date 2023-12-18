@@ -13,16 +13,24 @@ namespace vat::ast
 class UnaryOp : public Exp
 {
 public:
-	UnaryOp(Location const& location, std::string_view oper, SharedExp value);
+	enum Oper
+	{
+		Pos,
+		Neg,
+	};
+
+	UnaryOp(Location const& location, Oper oper, SharedExp value);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
 
-	std::string_view oper() const;
+	Oper oper() const;
 	Exp& value() const;
 
+	static constexpr std::string_view str(Oper oper);
+
 private:
-	std::string oper_;
+	Oper oper_;
 	SharedExp value_;
 };
 

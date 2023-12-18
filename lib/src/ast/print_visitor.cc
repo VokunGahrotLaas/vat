@@ -26,12 +26,11 @@ void PrintVisitor::operator()(AssignExp const& assign_exp)
 
 void PrintVisitor::operator()(SeqExp const& seq_exp)
 {
-	std::vector<SharedConstExp> exps = seq_exp.exps();
-	auto it = exps.begin();
-	if (it != exps.end()) (*it++)->accept(*this);
-	while (it != exps.end())
+	auto it = seq_exp.begin();
+	if (it != seq_exp.end()) (*it++)->accept(*this);
+	while (it != seq_exp.end())
 	{
-		os_ << ';' << std::endl;
+		os_ << ";\n" << std::string(indent_, '\t');
 		(*it++)->accept(*this);
 	}
 }
@@ -43,7 +42,7 @@ void PrintVisitor::operator()(Name const& name) { os_ << name.value(); }
 void PrintVisitor::operator()(UnaryOp const& unary_op)
 {
 	if (explicit_perens_) os_ << '(';
-	os_ << unary_op.oper();
+	os_ << UnaryOp::str(unary_op.oper());
 	unary_op.value().accept(*this);
 	if (explicit_perens_) os_ << ')';
 }
@@ -52,9 +51,40 @@ void PrintVisitor::operator()(BinaryOp const& binary_op)
 {
 	if (explicit_perens_) os_ << '(';
 	binary_op.lhs().accept(*this);
-	os_ << ' ' << binary_op.oper() << ' ';
+	os_ << ' ' << BinaryOp::str(binary_op.oper()) << ' ';
 	binary_op.rhs().accept(*this);
 	if (explicit_perens_) os_ << ')';
+}
+
+void PrintVisitor::operator()(FnExp const& fn_exp)
+{
+	os_ << "fn (";
+	auto it = fn_exp.args().begin();
+	if (it != fn_exp.args().end()) (*it++)->accept(*this);
+	while (it != fn_exp.args().end())
+	{
+		os_ << ", ";
+		(*it++)->accept(*this);
+	}
+	++indent_;
+	os_ << ") {\n" << std::string(indent_, '\t');
+	fn_exp.body().accept(*this);
+	--indent_;
+	os_ << "\n" << std::string(indent_, '\t') << "}";
+}
+
+void PrintVisitor::operator()(CallExp const& call_exp)
+{
+	call_exp.name().accept(*this);
+	os_ << '(';
+	auto it = call_exp.args().begin();
+	if (it != call_exp.args().end()) (*it++)->accept(*this);
+	while (it != call_exp.args().end())
+	{
+		os_ << ", ";
+		(*it++)->accept(*this);
+	}
+	os_ << ')';
 }
 
 } // namespace vat::ast

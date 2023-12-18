@@ -28,7 +28,7 @@ BISON_SRC_LOCATION = ${build}/lib/src/parser/location.hh
 BISON_OUT = ${build}/lib/src/parser/parser.yy.cc
 BISON_OBJ = ${BISON_OUT:.cc=.o}
 
-LIB_DIRS = lib/src/ast lib/src/parser lib/src
+LIB_DIRS = lib/src/eval lib/src/ast lib/src/parser lib/src
 LIB_SRC = ${wildcard ${addsuffix /*.cc,${LIB_DIRS}}}
 LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
 LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
