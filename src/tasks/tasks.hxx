@@ -27,22 +27,18 @@ R Task<R(Args...)>::operator()(Args... args)
 template <typename R, typename... Args>
 std::future<R> Task<R(Args...)>::run(std::launch policy, Args... args)
 {
-	return std::async(policy, [args..., task = std::move(*this)]() { return task(args...); });
+	return std::async(policy, [args..., task = std::move(*this)]() mutable { return task(args...); });
 }
 
 template <typename R, typename... Args>
 template <typename R1>
 Task<R1(Args...)> Task<R(Args...)>::and_then(Task<R1(R)> task)
 {
-	return Task<R1(Args...)>{ [task = std::move(task_), next = std::move(task)]() {
-		if constexpr (std::same_as<R, void> && std::same_as<R1, void>)
-			task(), next();
-		else if constexpr (std::same_as<R1, void>)
-			next(task());
-		else if constexpr (std::same_as<R, void>)
-			return task(), next();
+	return Task<R1(Args...)>{ [task = std::move(*this), next = std::move(task)](Args... args) mutable {
+		if constexpr (std::same_as<R1, void>)
+			next(task(args...));
 		else
-			return next(task());
+			return next(task(args...));
 	} };
 }
 
@@ -50,10 +46,11 @@ template <typename R, typename... Args>
 template <typename R1>
 Task<utils::unique_variant<R, R1>(Args...)> Task<R(Args...)>::or_else(Task<R1(std::exception_ptr)> task)
 {
-	return Task<utils::unique_variant<R, R1>(Args...)>{ [task = std::move(*this), next = std::move(task)]() {
+	return Task<utils::unique_variant<R, R1>(Args...)>{ [task = std::move(*this),
+														 next = std::move(task)](Args... args) mutable {
 		try
 		{
-			return task();
+			return task(args...);
 		}
 		catch (...)
 		{
@@ -67,14 +64,91 @@ template <typename... R1>
 Task<utils::unique_variant<R, R1...>(Args...)>
 Task<R(Args...)>::or_else(Task<std::variant<R1...>(std::exception_ptr)> task)
 {
-	return Task<utils::unique_variant<R, R1...>(Args...)>{ [task = std::move(*this), next = std::move(task)]() {
+	return Task<utils::unique_variant<R, R1...>(Args...)>{ [task = std::move(*this),
+															next = std::move(task)](Args... args) mutable {
 		try
 		{
-			return task();
+			return task(args...);
 		}
 		catch (...)
 		{
 			return std::visit([](auto&& value) -> utils::unique_variant<R, R1...> { return value; },
+							  next(std::current_exception()));
+		}
+	} };
+}
+
+template <typename... Args>
+template <typename F>
+Task<void(Args...)>::Task(F&& f)
+	: task_{ std::move(f) }
+{}
+
+template <typename... Args>
+void Task<void(Args...)>::operator()(Args... args)
+{
+	std::future<void> future = task_.get_future();
+	task_(args...);
+	future.get();
+}
+
+template <typename... Args>
+std::future<void> Task<void(Args...)>::run(std::launch policy, Args... args)
+{
+	return std::async(policy, [args..., task = std::move(*this)]() mutable { task(args...); });
+}
+
+template <typename... Args>
+template <typename R1>
+Task<R1(Args...)> Task<void(Args...)>::and_then(Task<R1()> task)
+{
+	return Task<R1(Args...)>{ [task = std::move(*this), next = std::move(task)](Args... args) mutable {
+		if constexpr (std::same_as<R1, void>)
+			task(args...), next();
+		else
+			return task(args...), next();
+	} };
+}
+
+template <typename... Args>
+template <typename R1>
+Task<utils::unique_variant<void, R1>(Args...)> Task<void(Args...)>::or_else(Task<R1(std::exception_ptr)> task)
+{
+	return Task<utils::unique_variant<void, R1>(Args...)>{ [task = std::move(*this),
+															next = std::move(task)](Args... args) mutable {
+		try
+		{
+			task(args...);
+			return utils::unique_variant<void, R1>{};
+		}
+		catch (...)
+		{
+			if constexpr (std::same_as<R1, void>)
+			{
+				return next(std::current_exception());
+				return utils::unique_variant<void, R1>{};
+			}
+			else
+				return next(std::current_exception());
+		}
+	} };
+}
+
+template <typename... Args>
+template <typename... R1>
+Task<utils::unique_variant<void, R1...>(Args...)>
+Task<void(Args...)>::or_else(Task<std::variant<R1...>(std::exception_ptr)> task)
+{
+	return Task<utils::unique_variant<void, R1...>(Args...)>{ [task = std::move(*this),
+															   next = std::move(task)](Args... args) mutable {
+		try
+		{
+			task(args...);
+			return utils::unique_variant<void, R1...>{};
+		}
+		catch (...)
+		{
+			return std::visit([](auto&& value) -> utils::unique_variant<void, R1...> { return value; },
 							  next(std::current_exception()));
 		}
 	} };
@@ -97,18 +171,18 @@ std::variant<R...> Task<std::variant<R...>(Args...)>::operator()(Args... args)
 template <typename... R, typename... Args>
 std::future<std::variant<R...>> Task<std::variant<R...>(Args...)>::run(std::launch policy, Args... args)
 {
-	return std::async(policy, [args..., task = std::move(*this)]() { return task(args...); });
+	return std::async(policy, [args..., task = std::move(*this)]() mutable { return task(args...); });
 }
 
 template <typename... R, typename... Args>
 template <typename R1>
 Task<R1(Args...)> Task<std::variant<R...>(Args...)>::and_then(Task<R1(std::variant<R...>)> task)
 {
-	return Task<R1(Args...)>{ [task = std::move(task_), next = std::move(task)]() {
+	return Task<R1(Args...)>{ [task = std::move(*this), next = std::move(task)](Args... args) mutable {
 		if constexpr (std::same_as<R1, void>)
-			next(task());
+			next(task(args...));
 		else
-			return next(task());
+			return next(task(args...));
 	} };
 }
 
@@ -117,10 +191,11 @@ template <typename R1>
 Task<utils::unique_variant<R..., R1>(Args...)>
 Task<std::variant<R...>(Args...)>::or_else(Task<R1(std::exception_ptr)> task)
 {
-	return Task<utils::unique_variant<R..., R1>(Args...)>{ [task = std::move(*this), next = std::move(task)]() {
+	return Task<utils::unique_variant<R..., R1>(Args...)>{ [task = std::move(*this),
+															next = std::move(task)](Args... args) mutable {
 		try
 		{
-			return std::visit([](auto&& value) -> utils::unique_variant<R..., R1> { return value; }, task());
+			return std::visit([](auto&& value) -> utils::unique_variant<R..., R1> { return value; }, task(args...));
 		}
 		catch (...)
 		{
@@ -134,10 +209,11 @@ template <typename... R1>
 Task<utils::unique_variant<R..., R1...>(Args...)>
 Task<std::variant<R...>(Args...)>::or_else(Task<std::variant<R1...>(std::exception_ptr)> task)
 {
-	return Task<utils::unique_variant<R..., R1...>(Args...)>{ [task = std::move(*this), next = std::move(task)]() {
+	return Task<utils::unique_variant<R..., R1...>(Args...)>{ [task = std::move(*this),
+															   next = std::move(task)](Args... args) mutable {
 		try
 		{
-			return std::visit([](auto&& value) -> utils::unique_variant<R..., R1...> { return value; }, task());
+			return std::visit([](auto&& value) -> utils::unique_variant<R..., R1...> { return value; }, task(args...));
 		}
 		catch (...)
 		{

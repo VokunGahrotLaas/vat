@@ -37,6 +37,30 @@ private:
 	std::packaged_task<R(Args...)> task_;
 };
 
+template <typename... Args>
+class Task<void(Args...)>
+{
+public:
+	template <typename F>
+	explicit Task(F&& f);
+
+	void operator()(Args... args);
+
+	std::future<void> run(std::launch policy, Args... args);
+
+	template <typename R1>
+	Task<R1(Args...)> and_then(Task<R1()> task);
+
+	template <typename R1>
+	Task<utils::unique_variant<void, R1>(Args...)> or_else(Task<R1(std::exception_ptr)> task);
+
+	template <typename... R1>
+	Task<utils::unique_variant<void, R1...>(Args...)> or_else(Task<std::variant<R1...>(std::exception_ptr)> task);
+
+private:
+	std::packaged_task<void(Args...)> task_;
+};
+
 template <typename... R, typename... Args>
 class Task<std::variant<R...>(Args...)>
 {

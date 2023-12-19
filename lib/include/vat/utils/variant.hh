@@ -45,13 +45,10 @@ template <typename... Args>
 using unique_variant =
 	unique_template_call<template_call_void_to_monostate<std::variant>::template type>::template type<Args...>;
 
-template <typename T, typename... Ts>
-struct overloads
-	: T
-	, Ts...
+template <typename... Ts>
+struct overloads : Ts...
 {
-	using T::T;
-	using T::operator(), Ts::operator()...;
+	using Ts::operator()...;
 };
 
 } // namespace vat::utils
