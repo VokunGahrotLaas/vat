@@ -13,7 +13,6 @@ class SeqExp : public Exp
 {
 public:
 	using iterator = std::vector<SharedExp>::const_iterator;
-	using const_iterator = std::vector<SharedConstExp>::const_iterator;
 
 	SeqExp(Location const& location, std::vector<SharedExp> exps);
 
@@ -21,11 +20,9 @@ public:
 	void accept(ConstVisitor& visitor) const override;
 
 	iterator begin();
-	const_iterator begin() const;
-	const_iterator cbegin() const;
 	iterator end();
-	const_iterator end() const;
-	const_iterator cend() const;
+
+	std::vector<SharedConstExp> exps() const;
 
 	void push_back(SharedExp exp);
 	std::size_t size() const;

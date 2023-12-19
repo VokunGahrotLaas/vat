@@ -37,6 +37,7 @@
   #include <vat/ast/print_visitor.hh>
 
   using namespace vat::ast;
+  using namespace vat;
 
 	#undef yylex
 	#define yylex driver.lexer().yylex
@@ -86,12 +87,8 @@
 
 %printer { driver.yyout() << $$; } <std::string> <int>;
 %printer {
-  if ($$) {
-    vat::ast::PrintVisitor pv{driver.yyout(), true};
-    pv(*$$);
-  } else {
-    driver.yyout() << "(nullptr)";
-  }
+  vat::ast::PrintVisitor pv{driver.yyout(), true};
+  pv(*$$);
 } <vat::ast::SharedExp>;
 
 %%

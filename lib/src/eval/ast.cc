@@ -20,7 +20,7 @@ void AstEvaluator::operator()(ast::AssignExp const& assign_exp)
 
 void AstEvaluator::operator()(ast::SeqExp const& seq_exp)
 {
-	for (ast::SharedConstExp const& exp: seq_exp)
+	for (ast::SharedConstExp const& exp: seq_exp.exps())
 		exp->accept(*this);
 }
 
@@ -63,10 +63,7 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 	}
 }
 
-void AstEvaluator::operator()(ast::FnExp const& fn_exp)
-{
-	result_ = std::static_pointer_cast<ast::FnExp const>(fn_exp.shared_from_this());
-}
+void AstEvaluator::operator()(ast::FnExp const& fn_exp) { result_ = shared_from_ast(fn_exp); }
 
 void AstEvaluator::operator()(ast::CallExp const& call_exp)
 {

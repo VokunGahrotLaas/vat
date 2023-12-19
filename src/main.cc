@@ -7,8 +7,6 @@
 #include <vat/eval/ast.hh>
 #include <vat/parser/parser.hh>
 
-#include "vat/ast/fwd.hh"
-
 int main(int argc, char** argv)
 {
 	int res = 0;
@@ -20,7 +18,7 @@ int main(int argc, char** argv)
 			parser.set_trace_parsing(true);
 		else if (argv[i] == std::string("-s"))
 			parser.set_trace_scanning(true);
-		else if (auto const ast = parser.parse(argv[i]))
+		else if (vat::ast::SharedAst ast = parser.parse(argv[i]))
 		{
 			pv(*ast);
 			std::cout << std::endl;

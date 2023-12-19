@@ -25,7 +25,8 @@ public:
 	void accept(ConstVisitor& visitor) const override;
 
 	Oper oper() const;
-	Exp& value() const;
+	Exp const& value() const;
+	Exp& value();
 
 	static constexpr std::string_view str(Oper oper);
 

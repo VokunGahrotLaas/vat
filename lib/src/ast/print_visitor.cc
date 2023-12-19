@@ -26,9 +26,10 @@ void PrintVisitor::operator()(AssignExp const& assign_exp)
 
 void PrintVisitor::operator()(SeqExp const& seq_exp)
 {
-	auto it = seq_exp.begin();
-	if (it != seq_exp.end()) (*it++)->accept(*this);
-	while (it != seq_exp.end())
+	auto const exps = seq_exp.exps();
+	auto it = exps.begin();
+	if (it != exps.end()) (*it++)->accept(*this);
+	while (it != exps.end())
 	{
 		os_ << ";\n" << std::string(indent_, '\t');
 		(*it++)->accept(*this);
@@ -59,9 +60,10 @@ void PrintVisitor::operator()(BinaryOp const& binary_op)
 void PrintVisitor::operator()(FnExp const& fn_exp)
 {
 	os_ << "fn (";
-	auto it = fn_exp.args().begin();
-	if (it != fn_exp.args().end()) (*it++)->accept(*this);
-	while (it != fn_exp.args().end())
+	auto const exps = fn_exp.args().exps();
+	auto it = exps.begin();
+	if (it != exps.end()) (*it++)->accept(*this);
+	while (it != exps.end())
 	{
 		os_ << ", ";
 		(*it++)->accept(*this);
@@ -77,9 +79,10 @@ void PrintVisitor::operator()(CallExp const& call_exp)
 {
 	call_exp.name().accept(*this);
 	os_ << '(';
-	auto it = call_exp.args().begin();
-	if (it != call_exp.args().end()) (*it++)->accept(*this);
-	while (it != call_exp.args().end())
+	auto const exps = call_exp.args().exps();
+	auto it = exps.begin();
+	if (it != exps.end()) (*it++)->accept(*this);
+	while (it != exps.end())
 	{
 		os_ << ", ";
 		(*it++)->accept(*this);

@@ -1,7 +1,10 @@
 #pragma once
 
-// vat
+// STL
+#include <concepts>
 #include <memory>
+
+// vat
 #include <vat/ast/location.hh>
 #include <vat/ast/visitor.hh>
 
@@ -23,6 +26,11 @@ public:
 
 	Location const& location() const;
 	void location(Location const& location);
+
+	template <std::derived_from<Ast> T>
+	friend std::shared_ptr<T> shared_from_ast(T& ast);
+	template <std::derived_from<Ast> T>
+	friend std::shared_ptr<T const> shared_from_ast(T const& ast);
 
 private:
 	Location location_;

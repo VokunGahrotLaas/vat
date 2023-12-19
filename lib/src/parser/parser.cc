@@ -3,7 +3,7 @@
 namespace vat::parser
 {
 
-std::shared_ptr<ast::Ast> Parser::parse(std::string_view filename)
+ast::SharedAst Parser::parse(std::string_view filename)
 {
 	std::string fn{ filename };
 	if (auto const it = drivers_.find(fn); it != drivers_.end())
