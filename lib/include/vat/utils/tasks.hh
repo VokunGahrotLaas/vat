@@ -2,12 +2,12 @@
 
 // STL
 #include <future>
+#include <type_traits>
 
 // vat
-#include <type_traits>
 #include <vat/utils/variant.hh>
 
-namespace vat
+namespace vat::utils
 {
 
 template <typename>

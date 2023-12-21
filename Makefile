@@ -34,7 +34,7 @@ LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
 LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
 LIB = ${build}/libvat.so
 
-DIRS = src/args src/tasks src
+DIRS = src/args src
 SRC = ${wildcard ${addsuffix /*.cc,${DIRS}}}
 OBJ = ${addprefix ${build}/,${SRC:.cc=.o}}
 EXEC = ${build}/vat
