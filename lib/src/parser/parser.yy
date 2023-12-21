@@ -47,6 +47,11 @@
 %token
   LET "let"
   FN "fn"
+  IF "if"
+  THEN "then"
+  ELSE "else"
+  TRUE "true"
+  FALSE "false"
 ;
 
 // operators
@@ -77,8 +82,12 @@
 %nterm <vat::ast::SharedSeqExp> exps_plural seq_exp fn_args fn_args.rec;
 %nterm <vat::ast::SharedExp> exps exp rhs_exp block_exp;
 %nterm <vat::ast::SharedName> name lhs_exp;
+%nterm <vat::ast::SharedBool> bool_exp;
+%nterm <vat::ast::SharedUnit> unit_exp;
 
 %left ";"
+%precedence "then"
+%precedence "else"
 %left "=";
 %left "+" "-";
 %left "*" "/" "%";
@@ -118,7 +127,9 @@ exp:
 ;
 
 rhs_exp:
-  "let" name "=" exp                  { $$ = std::make_shared<LetExp>(@$, $2, $4); }
+  "if" exp "then" exp                 { $$ = std::make_shared<IfExp>(@$, $2, $4); }
+| "if" exp "then" exp "else" exp      { $$ = std::make_shared<IfExp>(@$, $2, $4, $6); }
+| "let" name "=" exp                  { $$ = std::make_shared<LetExp>(@$, $2, $4); }
 | "fn" name "(" fn_args ")" block_exp { $$ = std::make_shared<LetExp>(@$, $2, std::make_shared<FnExp>(@$, $4, $6)); }
 | "fn" "(" fn_args ")" block_exp      { $$ = std::make_shared<FnExp>(@$, $3, $5); }
 | lhs_exp "=" exp                     { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
@@ -133,12 +144,23 @@ rhs_exp:
 | exp "(" seq_exp ")"                 { $$ = std::make_shared<CallExp>(@$, $1, $3); }
 | "(" rhs_exp ")"                     { $$ = $2; }
 | NUMBER                              { $$ = std::make_shared<Number>(@$, $1); }
+| bool_exp                            { $$ = $1; }
+| unit_exp                            { $$ = $1; }
 | block_exp
 ;
 
 lhs_exp:
   name            { $$ = $1; }
 | "(" lhs_exp ")" { $$ = $2; }
+;
+
+bool_exp:
+  TRUE { $$ = std::make_shared<Bool>(@$, true); }
+| FALSE { $$ = std::make_shared<Bool>(@$, false); }
+;
+
+unit_exp:
+  "(" ")" { $$ = std::make_shared<Unit>(@$); }
 ;
 
 block_exp: "{" exps "}" { $$ = $2; };

@@ -26,6 +26,9 @@ public:
 	virtual void operator()(Const<FnExp>&) = 0;
 	virtual void operator()(Const<CallExp>&) = 0;
 	virtual void operator()(Const<LetExp>&) = 0;
+	virtual void operator()(Const<Bool>&) = 0;
+	virtual void operator()(Const<IfExp>&) = 0;
+	virtual void operator()(Const<Unit>&) = 0;
 };
 
 using Visitor = GenVisitor<std::type_identity_t>;

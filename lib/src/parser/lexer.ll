@@ -45,6 +45,11 @@ blank   [ \t\r]
 
 "let"       return MAKE_TOKEN_NOARG(LET);
 "fn"       return MAKE_TOKEN_NOARG(FN);
+"if"       return MAKE_TOKEN_NOARG(IF);
+"then"       return MAKE_TOKEN_NOARG(THEN);
+"else"       return MAKE_TOKEN_NOARG(ELSE);
+"true"       return MAKE_TOKEN_NOARG(TRUE);
+"false"       return MAKE_TOKEN_NOARG(FALSE);
 
 "="        return MAKE_TOKEN(ASSIGN, std::string{YYText()});
 "-"        return MAKE_TOKEN(MINUS, std::string{YYText()});

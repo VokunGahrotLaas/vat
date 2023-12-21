@@ -66,11 +66,8 @@ MainCtx& main_print(MainCtx& ctx)
 
 MainCtx& main_eval(MainCtx& ctx)
 {
-	eval::ast_exp::exp_type exp = eval::AstEvaluator{}.eval(*ctx.ast);
-	std::visit(utils::overloads{ [](int value) { std::cout << "result: (int) " << value << std::endl; },
-								 [](ast::SharedConstFnExp) { std::cout << "result: (fn)" << std::endl; },
-								 [](auto&&) { std::cout << "runtime error" << std::endl; } },
-			   exp);
+	eval::AstEvaluator::print_exp(std::cout, eval::AstEvaluator{}.eval(*ctx.ast));
+	std::cout << std::endl;
 	return ctx;
 }
 

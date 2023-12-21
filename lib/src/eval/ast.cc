@@ -1,8 +1,12 @@
+#include <variant>
 #include <vat/eval/ast.hh>
 
 // STL
 #include <cmath>
 #include <stdexcept>
+
+#include "vat/ast/fwd.hh"
+#include "vat/utils/variant.hh"
 
 namespace vat::eval
 {
@@ -14,12 +18,11 @@ void AstEvaluator::operator()(ast::Exp const& exp) { exp.accept(*this); }
 void AstEvaluator::operator()(ast::AssignExp const& assign_exp)
 {
 	auto opt = variables_.get(assign_exp.name().value());
-	if (!opt)
-		throw std::runtime_error{"AssignExp: not such variable " + assign_exp.name().value()};
+	if (!opt) throw std::runtime_error{ "AssignExp: not such variable " + assign_exp.name().value() };
 	exp_type& old_value = opt->get();
 	assign_exp.value().accept(*this);
 	if (old_value.index() != result_.index())
-		throw std::runtime_error{"AssignExp: wrong type for variable " + assign_exp.name().value()};
+		throw std::runtime_error{ "AssignExp: wrong type for variable " + assign_exp.name().value() };
 	old_value = result_;
 }
 
@@ -31,7 +34,12 @@ void AstEvaluator::operator()(ast::SeqExp const& seq_exp)
 
 void AstEvaluator::operator()(ast::Number const& number) { result_ = number.value(); }
 
-void AstEvaluator::operator()(ast::Name const& name) { result_ = variable(name.value()).value(); }
+void AstEvaluator::operator()(ast::Name const& name)
+{
+	auto opt = variable(name.value());
+	if (!opt) throw std::runtime_error{ "Name: no such variable " + name.value() };
+	result_ = *opt;
+}
 
 void AstEvaluator::operator()(ast::UnaryOp const& unary_op)
 {
@@ -94,6 +102,18 @@ void AstEvaluator::operator()(ast::LetExp const& let_exp)
 	variables_.insert_or_assign(let_exp.name().value(), result_);
 }
 
+void AstEvaluator::operator()(ast::Bool const& bool_exp) { result_ = bool_exp.value(); }
+
+void AstEvaluator::operator()(ast::IfExp const& if_exp)
+{
+	if_exp.cond().accept(*this);
+	bool* cond = std::get_if<bool>(&result_);
+	if (!cond) throw std::runtime_error{ "IfExp: cond is not a bool" };
+	(*cond ? if_exp.then_exp() : if_exp.else_exp()).accept(*this);
+}
+
+void AstEvaluator::operator()(ast::Unit const&) { result_ = {}; }
+
 auto AstEvaluator::eval(input_type input) -> exp_type
 {
 	try
@@ -112,6 +132,14 @@ void AstEvaluator::reset()
 {
 	result_ = {};
 	variables_.clear();
+}
+
+void AstEvaluator::print_exp(std::ostream& os, exp_type exp)
+{
+	std::visit(utils::overloads{ [&os](int v) { os << "(int) " << v; }, [&os](std::monostate) { os << "(unit) ()"; },
+								 [&os](bool v) { os << "(bool) " << (v ? "true" : "false"); },
+								 [&os](ast::SharedConstFnExp v) { os << "(fn) " << v->location(); } },
+			   exp);
 }
 
 } // namespace vat::eval

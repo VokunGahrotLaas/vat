@@ -16,13 +16,15 @@ namespace vat::eval
 namespace ast_exp
 {
 
+using unit_type = std::monostate;
+
+using bool_type = bool;
+
 using int_type = int;
 
 using function_type = ast::SharedConstFnExp;
 
-using error_type = std::monostate;
-
-using exp_type = std::variant<error_type, int_type, function_type>;
+using exp_type = std::variant<unit_type, bool_type, int_type, function_type>;
 
 }; // namespace ast_exp
 
@@ -42,11 +44,16 @@ public:
 	void operator()(ast::FnExp const& fn_exp) override;
 	void operator()(ast::CallExp const& call_exp) override;
 	void operator()(ast::LetExp const& let_exp) override;
+	void operator()(ast::Bool const& bool_exp) override;
+	void operator()(ast::IfExp const& if_exp) override;
+	void operator()(ast::Unit const& unit) override;
 
 	exp_type eval(input_type input) override;
 	void reset() override;
 
 	std::optional<exp_type> variable(std::string const& name);
+
+	static void print_exp(std::ostream& os, exp_type exp);
 
 private:
 	utils::ScopedMap<std::string, exp_type> variables_{};

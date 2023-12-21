@@ -25,8 +25,13 @@ public:
 	void operator()(FnExp const& fn_exp) override;
 	void operator()(CallExp const& call_exp) override;
 	void operator()(LetExp const& let_exp) override;
+	void operator()(Bool const& bool_exp) override;
+	void operator()(IfExp const& if_exp) override;
+	void operator()(Unit const& unit) override;
 
 private:
+	void endline() const;
+
 	std::ostream& os_;
 	bool explicit_perens_;
 	std::size_t indent_{};
