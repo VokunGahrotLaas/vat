@@ -57,7 +57,7 @@ int main(std::span<std::string_view const> args)
 	return res;
 }
 
-MainCtx& main_prin(MainCtx& ctx)
+MainCtx& main_print(MainCtx& ctx)
 {
 	ast::PrintVisitor{ std::cout, true }(*ctx.ast);
 	std::cout << std::endl;

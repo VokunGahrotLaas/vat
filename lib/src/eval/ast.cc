@@ -2,7 +2,6 @@
 
 // STL
 #include <cmath>
-#include <memory>
 #include <stdexcept>
 
 namespace vat::eval
@@ -14,8 +13,14 @@ void AstEvaluator::operator()(ast::Exp const& exp) { exp.accept(*this); }
 
 void AstEvaluator::operator()(ast::AssignExp const& assign_exp)
 {
+	auto opt = variables_.get(assign_exp.name().value());
+	if (!opt)
+		throw std::runtime_error{"AssignExp: not such variable " + assign_exp.name().value()};
+	exp_type& old_value = opt->get();
 	assign_exp.value().accept(*this);
-	variables_.put(assign_exp.name().value(), result_);
+	if (old_value.index() != result_.index())
+		throw std::runtime_error{"AssignExp: wrong type for variable " + assign_exp.name().value()};
+	old_value = result_;
 }
 
 void AstEvaluator::operator()(ast::SeqExp const& seq_exp)
@@ -67,22 +72,26 @@ void AstEvaluator::operator()(ast::FnExp const& fn_exp) { result_ = shared_from_
 
 void AstEvaluator::operator()(ast::CallExp const& call_exp)
 {
-	std::optional<exp_type> func = variable(call_exp.name().value());
-	if (!func) throw std::runtime_error{ "CallExp: no such variable " + call_exp.name().value() };
-	ast::SharedConstFnExp* ast = std::get_if<ast::SharedConstFnExp>(&*func);
-	if (!ast) throw std::runtime_error{ "CallExp: no such function " + call_exp.name().value() };
+	call_exp.function().accept(*this);
+	ast::SharedConstFnExp* ast = std::get_if<ast::SharedConstFnExp>(&result_);
+	if (!ast) throw std::runtime_error{ "CallExp: not a function" };
 	ast::FnExp const& fn_exp = **ast;
-	if (fn_exp.args().size() != call_exp.args().size())
-		throw std::runtime_error{ "CallExp: invalid number of args " + call_exp.name().value() };
+	if (fn_exp.args().size() != call_exp.args().size()) throw std::runtime_error{ "CallExp: invalid number of args" };
 	{
-		auto scope = variables_.scope();
+		auto call_scope = variables_.call_scope();
 		for (std::size_t i = 0; i < call_exp.args().size(); ++i)
 		{
 			call_exp.args()[i].accept(*this);
-			variables_.put(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), result_);
+			variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), result_);
 		}
-		(*ast)->body().accept(*this);
+		fn_exp.body().accept(*this);
 	}
+}
+
+void AstEvaluator::operator()(ast::LetExp const& let_exp)
+{
+	let_exp.value().accept(*this);
+	variables_.insert_or_assign(let_exp.name().value(), result_);
 }
 
 auto AstEvaluator::eval(input_type input) -> exp_type

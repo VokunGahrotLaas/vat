@@ -5,11 +5,11 @@
 namespace vat::ast
 {
 
-inline Name const& CallExp::name() const { return *name_; }
+inline Exp const& CallExp::function() const { return *function_; }
 
 inline SeqExp const& CallExp::args() const { return *args_; }
 
-inline Name& CallExp::name() { return *name_; }
+inline Exp& CallExp::function() { return *function_; }
 
 inline SeqExp& CallExp::args() { return *args_; }
 

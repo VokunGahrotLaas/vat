@@ -3,9 +3,9 @@
 namespace vat::ast
 {
 
-CallExp::CallExp(Location const& location, SharedName name, SharedSeqExp args)
+CallExp::CallExp(Location const& location, SharedExp function, SharedSeqExp args)
 	: Exp{ location }
-	, name_{ std::move(name) }
+	, function_{ std::move(function) }
 	, args_{ std::move(args) }
 {}
 

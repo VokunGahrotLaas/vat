@@ -19,7 +19,7 @@ FLEX_OUT = ${build}/lib/src/parser/lexer.ll.cc
 FLEX_OBJ = ${FLEX_OUT:.cc=.o}
 
 BISON ?= bison
-BISONFLAGS = -v #-Wcounterexamples
+BISONFLAGS = -v -Wcounterexamples
 BISON_SRC = lib/src/parser/parser.yy
 BISON_HEADER = ${build}/lib/include/vat/parser/parser.yy.hh
 BISON_OUTPUT = ${build}/lib/src/parser/parser.yy.output

@@ -17,6 +17,7 @@ class UnaryOp;
 class BinaryOp;
 class FnExp;
 class CallExp;
+class LetExp;
 
 using SharedAst = std::shared_ptr<Ast>;
 using SharedConstAst = std::shared_ptr<Ast const>;
@@ -32,6 +33,8 @@ using SharedFnExp = std::shared_ptr<FnExp>;
 using SharedConstFnExp = std::shared_ptr<FnExp const>;
 using SharedCallExp = std::shared_ptr<CallExp>;
 using SharedConstCallExp = std::shared_ptr<CallExp const>;
+using LetCallExp = std::shared_ptr<LetExp>;
+using SharedConstLetExp = std::shared_ptr<LetExp const>;
 
 template <template <typename> typename Const>
 class GenVisitor;

@@ -41,6 +41,7 @@ public:
 	void operator()(ast::BinaryOp const& binary_op) override;
 	void operator()(ast::FnExp const& fn_exp) override;
 	void operator()(ast::CallExp const& call_exp) override;
+	void operator()(ast::LetExp const& let_exp) override;
 
 	exp_type eval(input_type input) override;
 	void reset() override;

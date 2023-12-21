@@ -77,7 +77,7 @@ void PrintVisitor::operator()(FnExp const& fn_exp)
 
 void PrintVisitor::operator()(CallExp const& call_exp)
 {
-	call_exp.name().accept(*this);
+	call_exp.function().accept(*this);
 	os_ << '(';
 	auto const exps = call_exp.args().exps();
 	auto it = exps.begin();
@@ -88,6 +88,16 @@ void PrintVisitor::operator()(CallExp const& call_exp)
 		(*it++)->accept(*this);
 	}
 	os_ << ')';
+}
+
+void PrintVisitor::operator()(LetExp const& let_exp)
+{
+	if (explicit_perens_) os_ << '(';
+	os_ << "let ";
+	let_exp.name().accept(*this);
+	os_ << " = ";
+	let_exp.value().accept(*this);
+	if (explicit_perens_) os_ << ')';
 }
 
 } // namespace vat::ast

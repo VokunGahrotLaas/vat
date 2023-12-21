@@ -11,3 +11,4 @@
 #include <vat/ast/number.hh>
 #include <vat/ast/seq_exp.hh>
 #include <vat/ast/unary_op.hh>
+#include <vat/ast/let_exp.hh>

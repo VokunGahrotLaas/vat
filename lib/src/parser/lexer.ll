@@ -43,6 +43,7 @@ blank   [ \t\r]
 {blank}+   loc.step();
 \n+        loc.lines(YYLeng()); loc.step();
 
+"let"       return MAKE_TOKEN_NOARG(LET);
 "fn"       return MAKE_TOKEN_NOARG(FN);
 
 "="        return MAKE_TOKEN(ASSIGN, std::string{YYText()});

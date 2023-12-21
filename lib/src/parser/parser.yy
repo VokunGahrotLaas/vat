@@ -45,6 +45,7 @@
 
 // keywords
 %token
+  LET "let"
   FN "fn"
 ;
 
@@ -83,7 +84,7 @@
 %left "*" "/" "%";
 %precedence POS NEG;
 %right "**";
-%precedence CALL;
+%precedence "(";
 
 %printer { driver.yyout() << $$; } <std::string> <int>;
 %printer {
@@ -117,7 +118,8 @@ exp:
 ;
 
 rhs_exp:
-  "fn" name "(" fn_args ")" block_exp { $$ = std::make_shared<AssignExp>(@$, $2, std::make_shared<FnExp>(@$, $4, $6)); }
+  "let" name "=" exp                  { $$ = std::make_shared<LetExp>(@$, $2, $4); }
+| "fn" name "(" fn_args ")" block_exp { $$ = std::make_shared<LetExp>(@$, $2, std::make_shared<FnExp>(@$, $4, $6)); }
 | "fn" "(" fn_args ")" block_exp      { $$ = std::make_shared<FnExp>(@$, $3, $5); }
 | lhs_exp "=" exp                     { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
 | exp "+" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Add, $1, $3); }
@@ -128,7 +130,7 @@ rhs_exp:
 | "-" exp %prec NEG                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Neg, $2); }
 | "+" exp %prec POS                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Pos, $2); }
 | exp "**" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Pow, $1, $3); }
-| lhs_exp "(" seq_exp ")" %prec CALL  { $$ = std::make_shared<CallExp>(@$, $1, $3); }
+| exp "(" seq_exp ")"                 { $$ = std::make_shared<CallExp>(@$, $1, $3); }
 | "(" rhs_exp ")"                     { $$ = $2; }
 | NUMBER                              { $$ = std::make_shared<Number>(@$, $1); }
 | block_exp

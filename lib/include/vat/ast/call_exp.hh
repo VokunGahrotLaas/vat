@@ -9,18 +9,18 @@ namespace vat::ast
 class CallExp : public Exp
 {
 public:
-	CallExp(Location const& location, SharedName name, SharedSeqExp args);
+	CallExp(Location const& location, SharedExp function, SharedSeqExp args);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;
 
-	Name const& name() const;
+	Exp const& function() const;
 	SeqExp const& args() const;
-	Name& name();
+	Exp& function();
 	SeqExp& args();
 
 private:
-	SharedName name_;
+	SharedExp function_;
 	SharedSeqExp args_;
 };
 
