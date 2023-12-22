@@ -193,8 +193,8 @@ fn_args:
 ;
 
 fn_args.rec:
-  name             { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1}); }
-| fn_args "," name { $$ = $1; $$->location(@$); $$->push_back($3); }
+  name             { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{std::make_shared<LetExp>(@1, $1)}); }
+| fn_args "," name { $$ = $1; $$->location(@$); $$->push_back(std::make_shared<LetExp>(@3, $3)); }
 ;
 %%
 

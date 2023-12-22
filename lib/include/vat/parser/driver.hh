@@ -29,6 +29,8 @@ public:
 	ast::SharedAst get_result();
 	void set_result(ast::SharedAst result);
 
+	std::string_view filename() const;
+
 private:
 	std::string filename_;
 	bool trace_parsing_;

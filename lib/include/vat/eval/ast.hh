@@ -2,6 +2,7 @@
 
 // STL
 #include <optional>
+#include <unordered_map>
 #include <variant>
 
 // vat
@@ -51,15 +52,11 @@ public:
 	exp_type eval(input_type input) override;
 	void reset() override;
 
-	std::optional<exp_type> variable(std::string const& name);
-
 	static void print_exp(std::ostream& os, exp_type exp);
 
 private:
-	utils::ScopedMap<std::string, exp_type> variables_{};
+	utils::ScopedMap<ast::SharedConstLetExp, exp_type> vars_{};
 	exp_type result_{};
 };
 
 } // namespace vat::eval
-
-#include <vat/eval/ast.hxx>

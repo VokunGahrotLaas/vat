@@ -6,9 +6,10 @@
 namespace vat::ast
 {
 
-PrintVisitor::PrintVisitor(std::ostream& os, bool explicit_perens)
+PrintVisitor::PrintVisitor(std::ostream& os, bool explicit_perens, bool trace_binding)
 	: os_{ os }
 	, explicit_perens_{ explicit_perens }
+	, trace_binding_{ trace_binding }
 {}
 
 void PrintVisitor::operator()(Ast const& ast) { ast.accept(*this); }
@@ -39,7 +40,17 @@ void PrintVisitor::operator()(SeqExp const& seq_exp)
 
 void PrintVisitor::operator()(Number const& number) { os_ << number.value(); }
 
-void PrintVisitor::operator()(Name const& name) { os_ << name.value(); }
+void PrintVisitor::operator()(Name const& name)
+{
+	os_ << name.value();
+	if (trace_binding_)
+	{
+		if (name.let_exp() != nullptr)
+			os_ << " /* bound to " << name.let_exp()->location() << " */";
+		else
+			os_ << " /* unbound */";
+	}
+}
 
 void PrintVisitor::operator()(UnaryOp const& unary_op)
 {
@@ -95,6 +106,11 @@ void PrintVisitor::operator()(CallExp const& call_exp)
 
 void PrintVisitor::operator()(LetExp const& let_exp)
 {
+	if (!let_exp.has_value())
+	{
+		let_exp.name().accept(*this);
+		return;
+	}
 	if (explicit_perens_) os_ << '(';
 	os_ << "let ";
 	let_exp.name().accept(*this);

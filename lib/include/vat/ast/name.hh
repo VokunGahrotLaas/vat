@@ -1,6 +1,7 @@
 #pragma once
 
 // STL
+#include <optional>
 #include <string_view>
 
 // vat
@@ -18,9 +19,12 @@ public:
 	void accept(ConstVisitor& visitor) const override;
 
 	std::string const& value() const;
+	SharedConstLetExp let_exp() const;
+	void let_exp(SharedConstLetExp let_exp);
 
 private:
 	std::string value_;
+	SharedConstLetExp let_exp_;
 };
 
 } // namespace vat::ast

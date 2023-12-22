@@ -1,12 +1,11 @@
-#include <variant>
 #include <vat/eval/ast.hh>
 
 // STL
 #include <cmath>
 #include <stdexcept>
 
-#include "vat/ast/fwd.hh"
-#include "vat/utils/variant.hh"
+// vat
+#include <vat/utils/variant.hh>
 
 namespace vat::eval
 {
@@ -17,9 +16,7 @@ void AstEvaluator::operator()(ast::Exp const& exp) { exp.accept(*this); }
 
 void AstEvaluator::operator()(ast::AssignExp const& assign_exp)
 {
-	auto opt = variables_.get(assign_exp.name().value());
-	if (!opt) throw std::runtime_error{ "AssignExp: not such variable " + assign_exp.name().value() };
-	exp_type& old_value = opt->get();
+	exp_type& old_value = vars_[assign_exp.name().let_exp()];
 	assign_exp.value().accept(*this);
 	if (old_value.index() != result_.index())
 		throw std::runtime_error{ "AssignExp: wrong type for variable " + assign_exp.name().value() };
@@ -34,12 +31,7 @@ void AstEvaluator::operator()(ast::SeqExp const& seq_exp)
 
 void AstEvaluator::operator()(ast::Number const& number) { result_ = number.value(); }
 
-void AstEvaluator::operator()(ast::Name const& name)
-{
-	auto opt = variable(name.value());
-	if (!opt) throw std::runtime_error{ "Name: no such variable " + name.value() };
-	result_ = *opt;
-}
+void AstEvaluator::operator()(ast::Name const& name) { result_ = vars_[name.let_exp()]; }
 
 void AstEvaluator::operator()(ast::UnaryOp const& unary_op)
 {
@@ -90,30 +82,29 @@ void AstEvaluator::operator()(ast::CallExp const& call_exp)
 	ast::SharedConstFnExp* ast = std::get_if<ast::SharedConstFnExp>(&result_);
 	if (!ast) throw std::runtime_error{ "CallExp: not a function" };
 	ast::FnExp const& fn_exp = **ast;
-	if (fn_exp.args().size() != call_exp.args().size()) throw std::runtime_error{ "CallExp: invalid number of args" };
+	if (fn_exp.args().size() != call_exp.args().size()) throw std::runtime_error{ "CallExp: invalid number of args " };
 	std::vector<exp_type> args(call_exp.args().size());
-	for (std::size_t i = 0; i < call_exp.args().size(); ++i)
+	for (std::size_t i = 0; i < args.size(); ++i)
 	{
 		call_exp.args()[i].accept(*this);
 		args[i] = result_;
 	}
-	auto call_scope = variables_.call_scope();
-	for (std::size_t i = 0; i < call_exp.args().size(); ++i)
-		variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), args[i]);
+	auto call_scope = vars_.call_scope();
+	for (std::size_t i = 0; i < args.size(); ++i)
+		vars_.insert_or_assign(ast::shared_from_ast(static_cast<ast::LetExp const&>(fn_exp.args()[i])), args[i]);
 	fn_exp.body().accept(*this);
 }
 
 void AstEvaluator::operator()(ast::LetExp const& let_exp)
 {
 	let_exp.value().accept(*this);
-	variables_.insert_or_assign(let_exp.name().value(), result_);
+	vars_.insert_or_assign(ast::shared_from_ast(let_exp), result_);
 }
 
 void AstEvaluator::operator()(ast::Bool const& bool_exp) { result_ = bool_exp.value(); }
 
 void AstEvaluator::operator()(ast::IfExp const& if_exp)
 {
-	auto scope = variables_.scope();
 	if_exp.cond().accept(*this);
 	bool* cond = std::get_if<bool>(&result_);
 	if (!cond) throw std::runtime_error{ "IfExp: cond is not a bool" };
@@ -139,7 +130,7 @@ auto AstEvaluator::eval(input_type input) -> exp_type
 void AstEvaluator::reset()
 {
 	result_ = {};
-	variables_.clear();
+	vars_.clear();
 }
 
 void AstEvaluator::print_exp(std::ostream& os, exp_type exp)

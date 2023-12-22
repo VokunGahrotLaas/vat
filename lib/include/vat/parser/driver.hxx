@@ -15,4 +15,6 @@ inline ast::SharedAst Driver::get_result() { return result_; }
 
 inline void Driver::set_result(ast::SharedAst result) { result_ = std::move(result); }
 
+inline std::string_view Driver::filename() const { return filename_; }
+
 } // namespace vat::parser

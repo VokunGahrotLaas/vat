@@ -21,7 +21,7 @@ public:
 	void set_trace_scanning(bool value);
 
 private:
-	std::unordered_map<std::string, std::unique_ptr<Driver>> drivers_{};
+	std::unordered_map<std::string_view, std::unique_ptr<Driver>> drivers_{};
 	bool trace_parsing_{ false };
 	bool trace_scanning_{ false };
 };

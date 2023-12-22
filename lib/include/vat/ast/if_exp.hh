@@ -2,6 +2,7 @@
 
 #include <vat/ast/exp.hh>
 #include <vat/ast/name.hh>
+
 #include "vat/ast/fwd.hh"
 
 namespace vat::ast
@@ -10,8 +11,7 @@ namespace vat::ast
 class IfExp : public Exp
 {
 public:
-	IfExp(Location const& location, SharedExp cond, SharedExp then_exp);
-	IfExp(Location const& location, SharedExp cond, SharedExp then_exp, SharedExp else_exp);
+	IfExp(Location const& location, SharedExp cond, SharedExp then_exp, SharedExp else_exp = nullptr);
 
 	void accept(Visitor& visitor) override;
 	void accept(ConstVisitor& visitor) const override;

@@ -3,15 +3,15 @@
 ## Status
 
 * simple grammar and ast
+* simple variable binder
 * simple pretty printer and ast based vm
 
 ## TODOs
 
 * add to grammar and ast
-* binder
 * type checker
 
-## Future ?
+## Future
 
 * compile to bytecode + vm
 * integrate with llvm backend
