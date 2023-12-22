@@ -99,7 +99,7 @@ void AstEvaluator::operator()(ast::CallExp const& call_exp)
 	}
 	auto call_scope = variables_.call_scope();
 	for (std::size_t i = 0; i < call_exp.args().size(); ++i)
-		variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), result_);
+		variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), args[i]);
 	fn_exp.body().accept(*this);
 }
 
