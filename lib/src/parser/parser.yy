@@ -85,7 +85,7 @@
 
 %token EOF 0 "end of file";
 
-%nterm <vat::ast::SharedSeqExp> exps_plural seq_exp fn_args fn_args.rec;
+%nterm <vat::ast::SharedSeqExp> exps_plural call_exps_plural call_seq_exp fn_args fn_args.rec;
 %nterm <vat::ast::SharedExp> exps exp rhs_exp block_exp;
 %nterm <vat::ast::SharedName> name lhs_exp;
 %nterm <vat::ast::SharedBool> bool_exp;
@@ -119,13 +119,18 @@ exps:
 
 exps_plural:
   exps_plural ";" exp { $$ = $1; $$->location(@$); $$->push_back($3); }
-| exp ";" exp        { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1, $3}); }
+| exp ";" exp         { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1, $3}); }
 ;
 
-seq_exp:
+call_exps_plural:
+  exps_plural "," exp { $$ = $1; $$->location(@$); $$->push_back($3); }
+| exp "," exp         { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1, $3}); }
+;
+
+call_seq_exp:
   %empty { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{}); }
 | exp    { $$ = std::make_shared<SeqExp>(@$, std::vector<SharedExp>{$1}); }
-| exps_plural
+| call_exps_plural
 ;
 
 exp:
@@ -154,7 +159,7 @@ rhs_exp:
 | "-" exp %prec NEG                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Neg, $2); }
 | "+" exp %prec POS                   { $$ = std::make_shared<UnaryOp>(@$, UnaryOp::Pos, $2); }
 | exp "**" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Pow, $1, $3); }
-| exp "(" seq_exp ")"                 { $$ = std::make_shared<CallExp>(@$, $1, $3); }
+| exp "(" call_seq_exp ")"            { $$ = std::make_shared<CallExp>(@$, $1, $3); }
 | "(" rhs_exp ")"                     { $$ = $2; }
 | NUMBER                              { $$ = std::make_shared<Number>(@$, $1); }
 | bool_exp                            { $$ = $1; }
