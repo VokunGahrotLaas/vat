@@ -23,7 +23,7 @@ public:
 		~Scope();
 
 	private:
-		Scope(ScopedMap& scoped_map, bool call = true);
+		Scope(ScopedMap& scoped_map, bool call = false);
 
 		ScopedMap<Key, Value>& scoped_map_;
 		std::size_t level_;

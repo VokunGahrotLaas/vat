@@ -72,7 +72,13 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 	case ast::BinaryOp::Div: *result = lhs / rhs; break;
 	case ast::BinaryOp::Mod: *result = lhs % rhs; break;
 	case ast::BinaryOp::Pow: *result = std::pow(lhs, rhs); break;
-	default: throw std::runtime_error{ "BinaryOp: missing case for UnaryOp" };
+	case ast::BinaryOp::Eq: result_ = lhs == rhs; break;
+	case ast::BinaryOp::Ne: result_ = lhs != rhs; break;
+	case ast::BinaryOp::Lt: result_ = lhs < rhs; break;
+	case ast::BinaryOp::Le: result_ = lhs <= rhs; break;
+	case ast::BinaryOp::Gt: result_ = lhs > rhs; break;
+	case ast::BinaryOp::Ge: result_ = lhs >= rhs; break;
+	default: throw std::runtime_error{ "BinaryOp: missing case for BinaryOp" };
 	}
 }
 
@@ -85,15 +91,16 @@ void AstEvaluator::operator()(ast::CallExp const& call_exp)
 	if (!ast) throw std::runtime_error{ "CallExp: not a function" };
 	ast::FnExp const& fn_exp = **ast;
 	if (fn_exp.args().size() != call_exp.args().size()) throw std::runtime_error{ "CallExp: invalid number of args" };
+	std::vector<exp_type> args(call_exp.args().size());
+	for (std::size_t i = 0; i < call_exp.args().size(); ++i)
 	{
-		auto call_scope = variables_.call_scope();
-		for (std::size_t i = 0; i < call_exp.args().size(); ++i)
-		{
-			call_exp.args()[i].accept(*this);
-			variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), result_);
-		}
-		fn_exp.body().accept(*this);
+		call_exp.args()[i].accept(*this);
+		args[i] = result_;
 	}
+	auto call_scope = variables_.call_scope();
+	for (std::size_t i = 0; i < call_exp.args().size(); ++i)
+		variables_.insert_or_assign(static_cast<ast::Name const&>(fn_exp.args()[i]).value(), result_);
+	fn_exp.body().accept(*this);
 }
 
 void AstEvaluator::operator()(ast::LetExp const& let_exp)
@@ -106,6 +113,7 @@ void AstEvaluator::operator()(ast::Bool const& bool_exp) { result_ = bool_exp.va
 
 void AstEvaluator::operator()(ast::IfExp const& if_exp)
 {
+	auto scope = variables_.scope();
 	if_exp.cond().accept(*this);
 	bool* cond = std::get_if<bool>(&result_);
 	if (!cond) throw std::runtime_error{ "IfExp: cond is not a bool" };

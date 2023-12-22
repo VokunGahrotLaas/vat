@@ -25,6 +25,12 @@ constexpr std::string_view BinaryOp::str(Oper oper)
 	case Div: return "/";
 	case Mod: return "%";
 	case Pow: return "**";
+	case Eq: return "==";
+	case Ne: return "!=";
+	case Lt: return "<";
+	case Le: return "<=";
+	case Gt: return ">";
+	case Ge: return ">=";
 	default: return "[[BinaryOp: unnamed]]";
 	}
 }

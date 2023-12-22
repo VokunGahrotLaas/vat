@@ -4,6 +4,7 @@ vat
 !lib/include/vat
 build
 compile_flags.txt
+.gdb_history
 
 #~# C
 

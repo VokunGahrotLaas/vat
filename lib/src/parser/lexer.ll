@@ -51,19 +51,25 @@ blank   [ \t\r]
 "true"       return MAKE_TOKEN_NOARG(TRUE);
 "false"       return MAKE_TOKEN_NOARG(FALSE);
 
-"="        return MAKE_TOKEN(ASSIGN, std::string{YYText()});
-"-"        return MAKE_TOKEN(MINUS, std::string{YYText()});
-"+"        return MAKE_TOKEN(PLUS, std::string{YYText()});
-"*"        return MAKE_TOKEN(STAR, std::string{YYText()});
-"/"        return MAKE_TOKEN(SLASH, std::string{YYText()});
-"%"        return MAKE_TOKEN(MOD, std::string{YYText()});
-"**"       return MAKE_TOKEN(POWER, std::string{YYText()});
-";"        return MAKE_TOKEN(SEMICOLON, std::string{YYText()});
-","        return MAKE_TOKEN(COMMA, std::string{YYText()});
-"("        return MAKE_TOKEN(LPAREN, std::string{YYText()});
-")"        return MAKE_TOKEN(RPAREN, std::string{YYText()});
-"{"        return MAKE_TOKEN(LBRACE, std::string{YYText()});
-"}"        return MAKE_TOKEN(RBRACE, std::string{YYText()});
+"="        return MAKE_TOKEN_NOARG(ASSIGN);
+"=="       return MAKE_TOKEN_NOARG(EQ);
+"!="       return MAKE_TOKEN_NOARG(NE);
+"<"        return MAKE_TOKEN_NOARG(LT);
+"<="       return MAKE_TOKEN_NOARG(LE);
+">"        return MAKE_TOKEN_NOARG(GT);
+">="       return MAKE_TOKEN_NOARG(GE);
+"-"        return MAKE_TOKEN_NOARG(MINUS);
+"+"        return MAKE_TOKEN_NOARG(PLUS);
+"*"        return MAKE_TOKEN_NOARG(STAR);
+"/"        return MAKE_TOKEN_NOARG(SLASH);
+"%"        return MAKE_TOKEN_NOARG(MOD);
+"**"       return MAKE_TOKEN_NOARG(POWER);
+";"        return MAKE_TOKEN_NOARG(SEMICOLON);
+","        return MAKE_TOKEN_NOARG(COMMA);
+"("        return MAKE_TOKEN_NOARG(LPAREN);
+")"        return MAKE_TOKEN_NOARG(RPAREN);
+"{"        return MAKE_TOKEN_NOARG(LBRACE);
+"}"        return MAKE_TOKEN_NOARG(RBRACE);
 
 {inv_id}   throw vat::parser::yyParser::syntax_error(loc, "invalid identifier: " + std::string{YYText()});
 {id}       return MAKE_TOKEN(IDENTIFIER, std::string{YYText()});

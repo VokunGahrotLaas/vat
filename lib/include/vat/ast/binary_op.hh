@@ -20,6 +20,12 @@ public:
 		Div,
 		Mod,
 		Pow,
+		Eq,
+		Ne,
+		Lt,
+		Le,
+		Gt,
+		Ge,
 	};
 
 	BinaryOp(Location const& location, Oper oper, SharedExp lhs, SharedExp rhs);

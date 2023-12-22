@@ -56,19 +56,25 @@
 
 // operators
 %token
-  <std::string> ASSIGN    "="
-  <std::string> MINUS     "-"
-  <std::string> PLUS      "+"
-  <std::string> STAR      "*"
-  <std::string> SLASH     "/"
-  <std::string> MOD       "%"
-  <std::string> POWER     "**"
-  <std::string> SEMICOLON ";"
-  <std::string> COMMA     ","
-  <std::string> LPAREN    "("
-  <std::string> RPAREN    ")"
-  <std::string> LBRACE    "{"
-  <std::string> RBRACE    "}"
+  ASSIGN    "="
+  EQ        "=="
+  NE        "!="
+  LT        "<"
+  LE        "<="
+  GT        ">"
+  GE        ">="
+  MINUS     "-"
+  PLUS      "+"
+  STAR      "*"
+  SLASH     "/"
+  MOD       "%"
+  POWER     "**"
+  SEMICOLON ";"
+  COMMA     ","
+  LPAREN    "("
+  RPAREN    ")"
+  LBRACE    "{"
+  RBRACE    "}"
 ;
 
 // exps
@@ -89,6 +95,7 @@
 %precedence "then"
 %precedence "else"
 %left "=";
+%left "==" "!=" "<" "<=" ">" ">=";
 %left "+" "-";
 %left "*" "/" "%";
 %precedence POS NEG;
@@ -133,6 +140,12 @@ rhs_exp:
 | "fn" name "(" fn_args ")" block_exp { $$ = std::make_shared<LetExp>(@$, $2, std::make_shared<FnExp>(@$, $4, $6)); }
 | "fn" "(" fn_args ")" block_exp      { $$ = std::make_shared<FnExp>(@$, $3, $5); }
 | lhs_exp "=" exp                     { $$ = std::make_shared<AssignExp>(@$, $1, $3); }
+| exp "==" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Eq, $1, $3); }
+| exp "!=" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Ne, $1, $3); }
+| exp "<" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Lt, $1, $3); }
+| exp "<=" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Le, $1, $3); }
+| exp ">" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Gt, $1, $3); }
+| exp ">=" exp                        { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Ge, $1, $3); }
 | exp "+" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Add, $1, $3); }
 | exp "-" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Sub, $1, $3); }
 | exp "*" exp                         { $$ = std::make_shared<BinaryOp>(@$, BinaryOp::Mul, $1, $3); }
