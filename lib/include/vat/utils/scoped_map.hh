@@ -8,6 +8,16 @@
 namespace vat::utils
 {
 
+class ScopedMapDebug
+{
+public:
+	static void set(bool debug);
+	static bool get();
+
+private:
+	static bool debug_;
+};
+
 template <typename Key, typename Value>
 class ScopedMap final
 {

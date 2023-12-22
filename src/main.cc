@@ -8,6 +8,7 @@
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
 #include <vat/parser/parser.hh>
+#include <vat/utils/scoped_map.hh>
 #include <vat/utils/tasks.hh>
 
 // vat prog
@@ -77,6 +78,8 @@ int main_arg(MainCtx& ctx, std::string_view arg, std::optional<std::string_view>
 		ctx.parser.set_trace_scanning(true);
 	else if (arg == "-b")
 		ctx.trace_binding = true;
+	else if (arg == "-m")
+		utils::ScopedMapDebug::set(true);
 	else
 		ctx.filename = arg;
 	return 0;

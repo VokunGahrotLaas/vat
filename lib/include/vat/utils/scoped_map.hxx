@@ -70,7 +70,7 @@ void ScopedMap<Key, Value>::insert_or_assign(Key const& key, Value const& value)
 template <typename Key, typename Value>
 bool ScopedMap<Key, Value>::insert(Key const& key, Value const& value)
 {
-	return scopes_.back().map.insert(key, value).second;
+	return scopes_.back().map.insert({ key, value }).second;
 }
 
 template <typename Key, typename Value>
@@ -127,10 +127,13 @@ template <typename Key, typename Value>
 void ScopedMap<Key, Value>::scope_end(std::size_t level)
 {
 	if (this->level() != level) throw std::runtime_error{ "ScopedMap::scope_end: scope error" };
-	std::cout << "Scope end: " << this->level() << " | " << scopes_.back().prev << " | " << scopes_.back().overriden
-			  << std::endl;
-	for (auto& [key, val]: scopes_.back().map)
-		std::cout << "* " << key << ": " << val << std::endl;
+	if (ScopedMapDebug::get())
+	{
+		std::cout << "Scope end: " << this->level() << " | " << scopes_.back().prev << " | " << scopes_.back().overriden
+				  << std::endl;
+		for (auto& [key, val]: scopes_.back().map)
+			std::cout << "* " << key << ": " << val << std::endl;
+	}
 	if (scopes_.back().overriden > 0)
 	{
 		scopes_.back().map.clear();

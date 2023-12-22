@@ -31,7 +31,8 @@ void Binder::operator()(ast::Name& name)
 
 void Binder::operator()(ast::LetExp& let_exp)
 {
-	lets_.insert_or_assign(let_exp.name().value(), ast::shared_from_ast(let_exp));
+	if (!lets_.insert(let_exp.name().value(), ast::shared_from_ast(let_exp)))
+		throw std::runtime_error{ "redefinition of " + let_exp.name().value() };
 	super_type::operator()(let_exp);
 }
 
