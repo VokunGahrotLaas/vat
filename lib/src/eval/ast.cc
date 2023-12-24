@@ -5,10 +5,15 @@
 #include <stdexcept>
 
 // vat
+#include <vat/utils/utils.hh>
 #include <vat/utils/variant.hh>
 
 namespace vat::eval
 {
+
+AstEvaluator::AstEvaluator(utils::ErrorManager& em)
+	: error_{ em }
+{}
 
 void AstEvaluator::operator()(ast::Ast const& ast) { ast.accept(*this); }
 
@@ -19,7 +24,10 @@ void AstEvaluator::operator()(ast::AssignExp const& assign_exp)
 	exp_type& old_value = vars_[assign_exp.name().let_exp()];
 	assign_exp.value().accept(*this);
 	if (old_value.index() != result_.index())
-		throw std::runtime_error{ "AssignExp: wrong type for variable " + assign_exp.name().value() };
+	{
+		error_.error(utils::ErrorType::Evaluation, assign_exp.location()) << "assignation from a different type";
+		return;
+	}
 	old_value = result_;
 }
 
@@ -37,12 +45,17 @@ void AstEvaluator::operator()(ast::UnaryOp const& unary_op)
 {
 	unary_op.value().accept(*this);
 	int* result = std::get_if<int>(&result_);
-	if (!result) throw std::runtime_error{ "UnaryOp: non int operand" };
+	if (!result)
+	{
+		error_.error(utils::ErrorType::Evaluation, unary_op.value().location())
+			<< "unary operation operand is not an integer";
+		return;
+	}
 	switch (unary_op.oper())
 	{
 	case ast::UnaryOp::Pos: break;
 	case ast::UnaryOp::Neg: *result = -*result; break;
-	default: throw std::runtime_error{ "UnaryOp: missing case for UnaryOp" };
+	default: utils::unreachable();
 	}
 }
 
@@ -50,11 +63,21 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 {
 	binary_op.lhs().accept(*this);
 	int* result = std::get_if<int>(&result_);
-	if (!result) throw std::runtime_error{ "BinaryOp: non int lhs" };
+	if (!result)
+	{
+		error_.error(utils::ErrorType::Evaluation, binary_op.lhs().location())
+			<< "binary operation lhs is not an integer";
+		return;
+	}
 	int lhs = *result;
 	binary_op.rhs().accept(*this);
 	result = std::get_if<int>(&result_);
-	if (!result) throw std::runtime_error{ "BinaryOp: non int rhs" };
+	if (!result)
+	{
+		error_.error(utils::ErrorType::Evaluation, binary_op.rhs().location())
+			<< "binary operation rhs is not an integer";
+		return;
+	}
 	int rhs = *result;
 	switch (binary_op.oper())
 	{
@@ -70,7 +93,7 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 	case ast::BinaryOp::Le: result_ = lhs <= rhs; break;
 	case ast::BinaryOp::Gt: result_ = lhs > rhs; break;
 	case ast::BinaryOp::Ge: result_ = lhs >= rhs; break;
-	default: throw std::runtime_error{ "BinaryOp: missing case for BinaryOp" };
+	default: utils::unreachable();
 	}
 }
 
@@ -80,9 +103,18 @@ void AstEvaluator::operator()(ast::CallExp const& call_exp)
 {
 	call_exp.function().accept(*this);
 	ast::SharedConstFnExp* ast = std::get_if<ast::SharedConstFnExp>(&result_);
-	if (!ast) throw std::runtime_error{ "CallExp: not a function" };
+	if (!ast)
+	{
+		error_.error(utils::ErrorType::Evaluation, call_exp.function().location()) << "calling non function";
+		return;
+	}
 	ast::FnExp const& fn_exp = **ast;
-	if (fn_exp.args().size() != call_exp.args().size()) throw std::runtime_error{ "CallExp: invalid number of args " };
+	if (fn_exp.args().size() != call_exp.args().size())
+	{
+		error_.error(utils::ErrorType::Evaluation, call_exp.location())
+			<< "invalid number of args, got " << call_exp.args().size() << " expected " << fn_exp.args().size();
+		return;
+	}
 	std::vector<exp_type> args(call_exp.args().size());
 	for (std::size_t i = 0; i < args.size(); ++i)
 	{
@@ -107,7 +139,11 @@ void AstEvaluator::operator()(ast::IfExp const& if_exp)
 {
 	if_exp.cond().accept(*this);
 	bool* cond = std::get_if<bool>(&result_);
-	if (!cond) throw std::runtime_error{ "IfExp: cond is not a bool" };
+	if (!cond)
+	{
+		error_.error(utils::ErrorType::Evaluation, if_exp.cond().location()) << "if condition if not a bool";
+		return;
+	}
 	(*cond ? if_exp.then_exp() : if_exp.else_exp()).accept(*this);
 }
 
@@ -115,15 +151,7 @@ void AstEvaluator::operator()(ast::Unit const&) { result_ = {}; }
 
 auto AstEvaluator::eval(input_type input) -> exp_type
 {
-	try
-	{
-		operator()(input);
-	}
-	catch (std::exception const& e)
-	{
-		std::cerr << "AstEvaluator::" << e.what() << std::endl;
-		return {};
-	}
+	operator()(input);
 	return result_;
 }
 

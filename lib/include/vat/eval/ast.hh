@@ -9,6 +9,7 @@
 #include <vat/ast/all.hh>
 #include <vat/ast/visitor.hh>
 #include <vat/eval/evaluator.hh>
+#include <vat/utils/error.hh>
 #include <vat/utils/scoped_map.hh>
 
 namespace vat::eval
@@ -34,6 +35,8 @@ class AstEvaluator
 	, public ast::ConstVisitor
 {
 public:
+	AstEvaluator(utils::ErrorManager& error);
+
 	void operator()(ast::Ast const& ast) override;
 	void operator()(ast::Exp const& exp) override;
 	void operator()(ast::AssignExp const& assign_exp) override;
@@ -55,6 +58,7 @@ public:
 	static void print_exp(std::ostream& os, exp_type exp);
 
 private:
+	utils::ErrorManager& error_;
 	utils::ScopedMap<ast::SharedConstLetExp, exp_type> vars_{};
 	exp_type result_{};
 };

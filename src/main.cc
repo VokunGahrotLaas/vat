@@ -8,6 +8,7 @@
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
 #include <vat/parser/parser.hh>
+#include <vat/utils/error.hh>
 #include <vat/utils/scoped_map.hh>
 #include <vat/utils/tasks.hh>
 
@@ -23,6 +24,7 @@ struct MainCtx
 	parser::Parser parser;
 	ast::SharedAst ast{};
 	bool error{ false };
+	utils::ErrorManager em{};
 	bool trace_binding{ false };
 };
 
@@ -39,7 +41,7 @@ MainCtx& main_eval(MainCtx& ctx);
 int main(int argc, char const* const* argv)
 {
 	std::vector<std::string_view> const args{ argv, argv + argc };
-	vat::main(args);
+	return vat::main(args);
 }
 
 namespace vat
@@ -66,7 +68,11 @@ int main(std::span<std::string_view const> args)
 	main_print(ctx);
 	if (ctx.error) return 1;
 	main_eval(ctx);
-	if (ctx.error) return 5;
+	if (ctx.em)
+	{
+		std::cerr << ctx.em;
+		return utils::enum_code(ctx.em.type());
+	}
 	return 0;
 }
 
@@ -107,7 +113,9 @@ MainCtx& main_bind(MainCtx& ctx)
 
 MainCtx& main_eval(MainCtx& ctx)
 {
-	eval::ast_exp::exp_type exp = eval::AstEvaluator{}.eval(*ctx.ast);
+	if (ctx.em) return ctx;
+	eval::ast_exp::exp_type exp = eval::AstEvaluator{ ctx.em }.eval(*ctx.ast);
+	if (ctx.em) return ctx;
 	eval::AstEvaluator::print_exp(std::cout, exp);
 	std::cout << std::endl;
 	return ctx;
