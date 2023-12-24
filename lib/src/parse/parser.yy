@@ -201,5 +201,5 @@ fn_args.rec:
 
 void vat::parse::yyParser::error(location_type const& l, std::string const& m)
 {
-  driver.error(utils::ErrorType::Parsing, l) << ": " << m;
+  driver.error(utils::ErrorType::Parsing, l) << m;
 }

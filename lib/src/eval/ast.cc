@@ -84,7 +84,15 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 	case ast::BinaryOp::Add: *result = lhs + rhs; break;
 	case ast::BinaryOp::Sub: *result = lhs - rhs; break;
 	case ast::BinaryOp::Mul: *result = lhs * rhs; break;
-	case ast::BinaryOp::Div: *result = lhs / rhs; break;
+	case ast::BinaryOp::Div:
+		if (rhs == 0)
+		{
+			error_.error(utils::ErrorType::Evaluation, binary_op.location()) << "division by zero";
+			*result = 0;
+			break;
+		}
+		*result = lhs / rhs;
+		break;
 	case ast::BinaryOp::Mod: *result = lhs % rhs; break;
 	case ast::BinaryOp::Pow: *result = std::pow(lhs, rhs); break;
 	case ast::BinaryOp::Eq: result_ = lhs == rhs; break;

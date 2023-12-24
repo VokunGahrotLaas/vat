@@ -27,6 +27,10 @@ static constexpr auto typing_assets = std::to_array<std::string_view>({
 	"test_assets/type",
 });
 
+static constexpr auto eval_assets = std::to_array<std::string_view>({
+	"test_assets/eval",
+});
+
 static constexpr auto good_assets = std::to_array<std::string_view>({
 	"test_assets/good",
 });
