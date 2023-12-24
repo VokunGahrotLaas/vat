@@ -1,5 +1,8 @@
 # VokunAavroTinvaak
 
+An interpreter for a custom programming language called vat. \
+Written in C++ using flex++/bison++.
+
 ## Status
 
 * simple grammar and ast
