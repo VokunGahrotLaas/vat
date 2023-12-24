@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vat/parser/location.hh>
+#include <vat/parse/location.hh>
 
 namespace vat::ast
 {
 
-using Location = vat::parser::location;
+using Location = vat::parse::location;
 
 } // namespace vat::ast

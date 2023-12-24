@@ -6,11 +6,12 @@
 #include <unordered_map>
 
 // vat
-#include <vat/parser/driver.hh>
+#include <vat/parse/driver.hh>
 #include <vat/utils/error.hh>
 
-namespace vat::parser
+namespace vat::parse
 {
+
 class Parser
 {
 public:
@@ -28,4 +29,4 @@ private:
 	utils::ErrorManager& error_;
 };
 
-} // namespace vat::parser
+} // namespace vat::parse

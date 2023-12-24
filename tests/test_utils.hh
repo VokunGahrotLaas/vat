@@ -8,23 +8,23 @@
 // vat
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
-#include <vat/parser/parser.hh>
+#include <vat/parse/parser.hh>
 #include <vat/utils/error.hh>
 
 static constexpr auto lexing_assets = std::to_array<std::string_view>({
-	"test_assets/lexing",
+	"test_assets/lex",
 });
 
 static constexpr auto parsing_assets = std::to_array<std::string_view>({
-	"test_assets/parsing",
+	"test_assets/parse",
 });
 
 static constexpr auto binding_assets = std::to_array<std::string_view>({
-	"test_assets/binding",
+	"test_assets/bind",
 });
 
 static constexpr auto typing_assets = std::to_array<std::string_view>({
-	"test_assets/typing",
+	"test_assets/type",
 });
 
 static constexpr auto good_assets = std::to_array<std::string_view>({
@@ -71,49 +71,49 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 		{
 			if (!file.is_regular_file() || file.path().extension() != ".vat") continue;
 			utils::ErrorManager em;
-			parser::Parser parser{ em };
+			parse::Parser parser{ em };
 			ast::SharedAst ast = parser.parse(file.path().string());
 			if (fail_on == FailOn::Lexing)
 			{
 				if (!(em.type() & utils::ErrorType::Lexing))
 				{
 					std::cerr << em;
-					std::cerr << file << ": lexing - should have failed but didn't" << std::endl;
+					std::cerr << "lexing - should have failed but didn't: " << file << std::endl;
 					code |= vat::utils::ErrorManager::Lexing;
 				}
 				else
-					std::cout << file << ": lexing - success" << std::endl;
+					std::cout << "lexing - success: " << file << std::endl;
 				continue;
 			}
 			if (em.type() & utils::ErrorType::Lexing)
 			{
 				std::cerr << em;
-				std::cerr << file << ": lexing - should have succeded but didn't" << std::endl;
+				std::cerr << "lexing - should have succeded but didn't: " << file << std::endl;
 				code |= vat::utils::ErrorManager::Lexing;
 				continue;
 			}
-			std::cout << file << ": lexing - success" << std::endl;
+			std::cout << "lexing - success: " << file << std::endl;
 			if (success_until == SuccessUntil::Lexing) continue;
 			if (fail_on == FailOn::Parsing)
 			{
 				if (!(em.type() & utils::ErrorType::Parsing))
 				{
 					std::cerr << em;
-					std::cerr << file << ": parsing - should have failed but didn't" << std::endl;
+					std::cerr << "parsing - should have failed but didn't: " << file << std::endl;
 					code |= vat::utils::ErrorManager::Parsing;
 				}
 				else
-					std::cout << file << ": parsing - success" << std::endl;
+					std::cout << "parsing - success: " << file << std::endl;
 				continue;
 			}
 			if (em.type() & utils::ErrorType::Parsing)
 			{
 				std::cerr << em;
-				std::cerr << file << ": parsing - should have succeded but didn't" << std::endl;
+				std::cerr << "parsing - should have succeded but didn't: " << file << std::endl;
 				code |= vat::utils::ErrorManager::Parsing;
 				continue;
 			}
-			std::cout << file << ": parsing - success" << std::endl;
+			std::cout << "parsing - success: " << file << std::endl;
 			if (success_until == SuccessUntil::Parsing) continue;
 			bind::Binder binder{ em };
 			binder.bind(*ast);
@@ -121,21 +121,21 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 			{
 				if (!em)
 				{
-					std::cerr << file << ": binding - should have failed but didn't" << std::endl;
+					std::cerr << "binding - should have failed but didn't: " << file << std::endl;
 					code |= vat::utils::ErrorManager::Binding;
 				}
 				else
-					std::cout << file << ": binding - success" << std::endl;
+					std::cout << "binding - success: " << file << std::endl;
 				continue;
 			}
 			if (em)
 			{
 				std::cerr << em;
-				std::cerr << file << ": binding - should have succeded but didn't" << std::endl;
+				std::cerr << "binding - should have succeded but didn't: " << file << std::endl;
 				code |= vat::utils::ErrorManager::Binding;
 				continue;
 			}
-			std::cout << file << ": binding - success" << std::endl;
+			std::cout << "binding - success: " << file << std::endl;
 			if (success_until == SuccessUntil::Binding) continue;
 			eval::AstEvaluator evaluator{ em };
 			eval::ast_exp::exp_type exp = evaluator.eval(*ast);
@@ -143,21 +143,21 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 			{
 				if (!em)
 				{
-					std::cerr << file << ": evaluation - should have failed but didn't" << std::endl;
+					std::cerr << "evaluation - should have failed but didn't: " << file << std::endl;
 					code |= vat::utils::ErrorManager::Evaluation;
 				}
 				else
-					std::cout << file << ": evaluation - success" << std::endl;
+					std::cout << "evaluation - success: " << file << std::endl;
 				continue;
 			}
 			if (em)
 			{
 				std::cerr << em;
-				std::cerr << file << ": evaluation - should have succeded but didn't" << std::endl;
+				std::cerr << "evaluation - should have succeded but didn't: " << file << std::endl;
 				code |= vat::utils::ErrorManager::Evaluation;
 				continue;
 			}
-			std::cout << file << ": evaluation - success" << std::endl;
+			std::cout << "evaluation - success: " << file << std::endl;
 			if (success_until == SuccessUntil::Typing || success_until == SuccessUntil::Evaluation) continue;
 		}
 	}

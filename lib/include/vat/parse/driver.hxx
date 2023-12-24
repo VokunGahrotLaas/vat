@@ -1,19 +1,19 @@
 #pragma once
 
-#include <vat/parser/driver.hh>
+#include <vat/parse/driver.hh>
 
-namespace vat::parser
+namespace vat::parse
 {
 
 inline std::ostream& Driver::yyout() { return *os_; }
 
 inline Lexer& Driver::lexer() { return *lexer_; }
 
-inline parser::location& Driver::location() { return loc_; }
+inline parse::location& Driver::location() { return loc_; }
 
 inline utils::ErrorManager::Error& Driver::error(utils::ErrorType type) { return error(type, location()); }
 
-inline utils::ErrorManager::Error& Driver::error(utils::ErrorType type, parser::location const& loc)
+inline utils::ErrorManager::Error& Driver::error(utils::ErrorType type, parse::location const& loc)
 {
 	return error_.error(type, loc);
 }
@@ -24,4 +24,4 @@ inline void Driver::set_result(ast::SharedAst result) { result_ = std::move(resu
 
 inline std::string_view Driver::filename() const { return filename_; }
 
-} // namespace vat::parser
+} // namespace vat::parse

@@ -5,7 +5,7 @@
 %header
 %locations
 
-%define api.namespace {vat::parser}
+%define api.namespace {vat::parse}
 %define api.parser.class {yyParser}
 
 %define api.value.type variant
@@ -24,16 +24,16 @@
   #include <memory>
 
   // vat
-	#include <vat/parser/driver.hh>
+	#include <vat/parse/driver.hh>
   #include <vat/ast/all.hh>
 }
 
 // The parsing context.
-%param { vat::parser::Driver& driver }
+%param { vat::parse::Driver& driver }
 
 %code {
   // vat
-	#include <vat/parser/lexer.hh>
+	#include <vat/parse/lexer.hh>
   #include <vat/ast/print_visitor.hh>
 
   using namespace vat::ast;
@@ -199,7 +199,7 @@ fn_args.rec:
 ;
 %%
 
-void vat::parser::yyParser::error(location_type const& l, std::string const& m)
+void vat::parse::yyParser::error(location_type const& l, std::string const& m)
 {
   driver.error(utils::ErrorType::Parsing, l) << ": " << m;
 }

@@ -7,7 +7,7 @@
 #include <vat/ast/print_visitor.hh>
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
-#include <vat/parser/parser.hh>
+#include <vat/parse/parser.hh>
 #include <vat/utils/error.hh>
 #include <vat/utils/scoped_map.hh>
 #include <vat/utils/tasks.hh>
@@ -23,7 +23,7 @@ struct MainCtx
 	std::string_view filename{};
 	ast::SharedAst ast{};
 	utils::ErrorManager em{};
-	parser::Parser parser{ em };
+	parse::Parser parser{ em };
 	bool trace_binding{ false };
 };
 

@@ -1,6 +1,6 @@
-#include <vat/parser/parser.hh>
+#include <vat/parse/parser.hh>
 
-namespace vat::parser
+namespace vat::parse
 {
 
 Parser::Parser(utils::ErrorManager& em)
@@ -25,4 +25,4 @@ void Parser::set_trace_parsing(bool value) { trace_parsing_ = value; }
 
 void Parser::set_trace_scanning(bool value) { trace_scanning_ = value; }
 
-} // namespace vat::parser
+} // namespace vat::parse

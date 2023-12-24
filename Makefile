@@ -13,22 +13,22 @@ LDFLAGS = -O$O
 
 FLEX ?= flex
 FLEXFLAGS =
-FLEX_SRC = lib/src/parser/lexer.ll
-FLEX_HEADER = ${build}/lib/include/vat/parser/lexer.ll.hh
-FLEX_OUT = ${build}/lib/src/parser/lexer.ll.cc
+FLEX_SRC = lib/src/parse/lexer.ll
+FLEX_HEADER = ${build}/lib/include/vat/parse/lexer.ll.hh
+FLEX_OUT = ${build}/lib/src/parse/lexer.ll.cc
 FLEX_OBJ = ${FLEX_OUT:.cc=.o}
 
 BISON ?= bison
 BISONFLAGS = -v -Wcounterexamples
-BISON_SRC = lib/src/parser/parser.yy
-BISON_HEADER = ${build}/lib/include/vat/parser/parser.yy.hh
-BISON_OUTPUT = ${build}/lib/src/parser/parser.yy.output
-BISON_LOCATION = ${build}/lib/include/vat/parser/location.hh
-BISON_SRC_LOCATION = ${build}/lib/src/parser/location.hh
-BISON_OUT = ${build}/lib/src/parser/parser.yy.cc
+BISON_SRC = lib/src/parse/parser.yy
+BISON_HEADER = ${build}/lib/include/vat/parse/parser.yy.hh
+BISON_OUTPUT = ${build}/lib/src/parse/parser.yy.output
+BISON_LOCATION = ${build}/lib/include/vat/parse/location.hh
+BISON_SRC_LOCATION = ${build}/lib/src/parse/location.hh
+BISON_OUT = ${build}/lib/src/parse/parser.yy.cc
 BISON_OBJ = ${BISON_OUT:.cc=.o}
 
-LIB_DIRS = lib/src/utils lib/src/bind lib/src/eval lib/src/ast lib/src/parser lib/src
+LIB_DIRS = lib/src/utils lib/src/bind lib/src/eval lib/src/ast lib/src/parse lib/src
 LIB_SRC = ${wildcard ${addsuffix /*.cc,${LIB_DIRS}}}
 LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
 LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
@@ -43,8 +43,9 @@ TESTS_DIRS = tests
 TESTS_SRC = ${wildcard ${addsuffix /test_*.cc,${TESTS_DIRS}}}
 TESTS_EXEC = ${addprefix ${build}/,${TESTS_SRC:.cc=}}
 TESTS_CHECK = ${addprefix check_,${TESTS_EXEC}}
+TESTS_LOG = ${addsuffix .log,${TESTS_EXEC}}
 
-BUILD_DIRS = ${addprefix ${build}/,${DIRS} ${LIB_DIRS} ${TESTS_DIRS} lib/include/vat/parser}
+BUILD_DIRS = ${addprefix ${build}/,${DIRS} ${LIB_DIRS} ${TESTS_DIRS} lib/include/vat/parse}
 CLEAN_DIRS = ${addprefix clean_,${BUILD_DIRS}}
 
 mode = release
@@ -101,7 +102,7 @@ ${FLEX_OBJ}: ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -fPIC -o $@ -c ${FLEX_OUT}
 
 ${BISON_OBJ}: ${FLEX_OUT} ${BISON_OUT}
-	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parser -fPIC -o $@ -c ${BISON_OUT}
+	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parse -fPIC -o $@ -c ${BISON_OUT}
 
 ${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -fPIC -o $@ -c $<
@@ -125,7 +126,7 @@ gdb: ${EXEC}
 	LD_LIBRARY_PATH=${build} gdb -q $(gdb_args) --args $(EXEC) $(args)
 
 check_${build}/tests/%: ${build}/tests/% ${LIB} phony_explicit
-	./$< ${tests_args}
+	./$< ${tests_args} > ${build}/tests/$*.log
 
 check: ${TESTS_EXEC} .WAIT ${TESTS_CHECK}
 
@@ -142,6 +143,6 @@ uninstall:
 	${RM} ${PREFIX}/bin/vat
 
 clean_files:
-	${RM} ${EXEC} ${LIB} ${TESTS_EXEC} ${OBJ} ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ} ${FLEX_OUT} ${BISON_OUT} ${BISON_OUTPUT} ${LIB_HEADERS}
+	${RM} ${EXEC} ${LIB} ${TESTS_EXEC} ${OBJ} ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ} ${FLEX_OUT} ${BISON_OUT} ${BISON_OUTPUT} ${LIB_HEADERS} ${TESTS_LOG}
 
 clean: clean_files .WAIT ${CLEAN_DIRS}

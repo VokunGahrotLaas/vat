@@ -18,13 +18,13 @@ inline auto ErrorManager::Error::operator<<(func_type func) -> Error&
 	return *this;
 }
 
-inline ErrorManager::Error::Error(Type type, parser::location const& location)
+inline ErrorManager::Error::Error(Type type, parse::location const& location)
 	: oss_{}
 	, location_{ location }
 	, type_{ type }
 {}
 
-inline auto ErrorManager::error(Type type, parser::location const& location) -> Error&
+inline auto ErrorManager::error(Type type, parse::location const& location) -> Error&
 {
 	if (type == None) throw std::runtime_error{ "ErrorManager: cannot create an error with None (use Other)" };
 	type_ |= type;

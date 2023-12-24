@@ -1,14 +1,14 @@
-#include <vat/parser/driver.hh>
+#include <vat/parse/driver.hh>
 
 // STL
 #include <fstream>
 #include <iostream>
 
 // vat
-#include <vat/parser/lexer.hh>
-#include <vat/parser/parser.yy.hh>
+#include <vat/parse/lexer.hh>
+#include <vat/parse/parser.yy.hh>
 
-namespace vat::parser
+namespace vat::parse
 {
 
 Driver::Driver(std::string_view filename, utils::ErrorManager& em, bool trace_parsing, bool trace_scanning)
@@ -32,7 +32,7 @@ bool Driver::parse()
 		is_ = new std::ifstream{ filename_ };
 		if (!*is_)
 		{
-			parser::location loc{ &filename_ };
+			parse::location loc{ &filename_ };
 			error_.error(utils::ErrorType::Other, loc) << "no such file or directory";
 			success_ = false;
 			finished_ = true;
@@ -51,4 +51,4 @@ bool Driver::parse()
 	return success_;
 }
 
-} // namespace vat::parser
+} // namespace vat::parse

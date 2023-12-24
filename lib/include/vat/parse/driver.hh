@@ -7,10 +7,10 @@
 
 // vat
 #include <vat/ast/fwd.hh>
-#include <vat/parser/location.hh>
+#include <vat/parse/location.hh>
 #include <vat/utils/error.hh>
 
-namespace vat::parser
+namespace vat::parse
 {
 
 class Lexer;
@@ -25,9 +25,9 @@ public:
 
 	std::ostream& yyout();
 	Lexer& lexer();
-	parser::location& location();
+	parse::location& location();
 	utils::ErrorManager::Error& error(utils::ErrorType type);
-	utils::ErrorManager::Error& error(utils::ErrorType type, parser::location const& loc);
+	utils::ErrorManager::Error& error(utils::ErrorType type, parse::location const& loc);
 
 	ast::SharedAst get_result();
 	void set_result(ast::SharedAst result);
@@ -39,7 +39,7 @@ private:
 	utils::ErrorManager& error_;
 	bool trace_parsing_;
 	bool trace_scanning_;
-	parser::location loc_;
+	parse::location loc_;
 	std::istream* is_{ nullptr };
 	std::ostream* os_{ nullptr };
 	std::unique_ptr<Lexer> lexer_;
@@ -48,6 +48,6 @@ private:
 	ast::SharedAst result_{};
 };
 
-} // namespace vat::parser
+} // namespace vat::parse
 
-#include <vat/parser/driver.hxx>
+#include <vat/parse/driver.hxx>

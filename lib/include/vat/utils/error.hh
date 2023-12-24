@@ -6,7 +6,7 @@
 #include <vector>
 
 // vat
-#include <vat/parser/location.hh>
+#include <vat/parse/location.hh>
 
 namespace vat::utils
 {
@@ -40,14 +40,14 @@ public:
 		friend std::ostream& operator<<(std::ostream& os, Error const& err);
 
 	private:
-		Error(Type type, parser::location const& location);
+		Error(Type type, parse::location const& location);
 
 		std::ostringstream oss_;
-		parser::location location_;
+		parse::location location_;
 		Type type_;
 	};
 
-	Error& error(Type type, parser::location const& location);
+	Error& error(Type type, parse::location const& location);
 
 	friend std::ostream& operator<<(std::ostream& os, ErrorManager const& em);
 
