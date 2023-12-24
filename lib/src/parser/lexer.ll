@@ -16,14 +16,15 @@
 	#define YY_DECL vat::parser::yyParser::symbol_type vat::parser::Lexer::yylex(vat::parser::Driver& driver)
 
 	// Code run each time a pattern is matched.
-	#define YY_USER_ACTION  loc.columns(YYLeng());
+	#define YY_USER_ACTION  driver.location().columns(YYLeng());
 
-	#define MAKE_TOKEN(Name, Arg) vat::parser::yyParser::make_##Name((Arg), loc)
-	#define MAKE_TOKEN_NOARG(Name) vat::parser::yyParser::make_##Name(loc)
+	#define MAKE_TOKEN(Name, Arg) vat::parser::yyParser::make_##Name((Arg), driver.location())
+	#define MAKE_TOKEN_NOARG(Name) vat::parser::yyParser::make_##Name(driver.location())
 
 	namespace vat::parser::lexer {
 
-	vat::parser::yyParser::symbol_type make_NUMBER(const std::string &s, const vat::parser::yyParser::location_type& loc);
+	yyParser::symbol_type make_NUMBER(Driver& driver, const std::string &s);
+	yyParser::symbol_type make_ERROR(Driver& driver, std::string_view reason);
 
 	} // namespace vat::parser::lexer
 %}
@@ -36,20 +37,19 @@ blank   [ \t\r]
 
 %%
 %{
-	vat::parser::location& loc = driver.location();
-	loc.step();
+	driver.location().step();
 %}
 
-{blank}+   loc.step();
-\n+        loc.lines(YYLeng()); loc.step();
+{blank}+   driver.location().step();
+\n+        driver.location().lines(YYLeng()); driver.location().step();
 
-"let"       return MAKE_TOKEN_NOARG(LET);
+"let"      return MAKE_TOKEN_NOARG(LET);
 "fn"       return MAKE_TOKEN_NOARG(FN);
 "if"       return MAKE_TOKEN_NOARG(IF);
-"then"       return MAKE_TOKEN_NOARG(THEN);
-"else"       return MAKE_TOKEN_NOARG(ELSE);
-"true"       return MAKE_TOKEN_NOARG(TRUE);
-"false"       return MAKE_TOKEN_NOARG(FALSE);
+"then"     return MAKE_TOKEN_NOARG(THEN);
+"else"     return MAKE_TOKEN_NOARG(ELSE);
+"true"     return MAKE_TOKEN_NOARG(TRUE);
+"false"    return MAKE_TOKEN_NOARG(FALSE);
 
 "="        return MAKE_TOKEN_NOARG(ASSIGN);
 "=="       return MAKE_TOKEN_NOARG(EQ);
@@ -71,23 +71,32 @@ blank   [ \t\r]
 "{"        return MAKE_TOKEN_NOARG(LBRACE);
 "}"        return MAKE_TOKEN_NOARG(RBRACE);
 
-{inv_id}   throw vat::parser::yyParser::syntax_error(loc, "invalid identifier: " + std::string{YYText()});
+{inv_id}   vat::parser::lexer::make_ERROR(driver, "invalid identifier: " + std::string{YYText()}); return MAKE_TOKEN(IDENTIFIER, std::string{YYText()});
 {id}       return MAKE_TOKEN(IDENTIFIER, std::string{YYText()});
-{inv_int}  throw vat::parser::yyParser::syntax_error(loc, "invalid integer: " + std::string{YYText()});
-{int}      return vat::parser::lexer::make_NUMBER(YYText(), loc);
+{inv_int}  vat::parser::lexer::make_ERROR(driver, "invalid integer: " + std::string{YYText()}); return MAKE_TOKEN(NUMBER, 0);
+{int}      return vat::parser::lexer::make_NUMBER(driver, YYText());
 
 <<EOF>>    return MAKE_TOKEN_NOARG(EOF);
 
-.          throw vat::parser::yyParser::syntax_error(loc, "invalid character: " + std::string{YYText()});
+.          return vat::parser::lexer::make_ERROR(driver, "invalid character: " + std::string{YYText()});
 %%
 
-auto vat::parser::lexer::make_NUMBER(std::string const& s, yyParser::location_type const& loc) -> yyParser::symbol_type
+auto vat::parser::lexer::make_NUMBER(Driver& driver, std::string const& s) -> yyParser::symbol_type
 {
 	int old_errno = errno;
 	errno = 0;
 	long n = std::strtol(s.c_str(), NULL, 10);
 	if (!(INT_MIN <= n && n <= INT_MAX && errno == 0))
-		throw yyParser::syntax_error(loc, "integer is out of range: " + s);
+	{
+		make_ERROR(driver, "integer is out of range: " + s);
+		return MAKE_TOKEN(NUMBER, 0);
+	}
 	errno = old_errno;
 	return MAKE_TOKEN(NUMBER, static_cast<int>(n));
+}
+
+auto vat::parser::lexer::make_ERROR(Driver& driver, std::string_view reason) -> yyParser::symbol_type
+{
+	driver.error(utils::ErrorType::Lexing) << reason;
+	return MAKE_TOKEN_NOARG(ERROR);
 }

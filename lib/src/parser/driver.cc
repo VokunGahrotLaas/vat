@@ -11,8 +11,9 @@
 namespace vat::parser
 {
 
-Driver::Driver(std::string_view filename, bool trace_parsing, bool trace_scanning)
+Driver::Driver(std::string_view filename, utils::ErrorManager& em, bool trace_parsing, bool trace_scanning)
 	: filename_{ filename }
+	, error_{ em }
 	, trace_parsing_(trace_parsing)
 	, trace_scanning_(trace_scanning)
 {
@@ -29,7 +30,14 @@ bool Driver::parse()
 	if (!filename_.empty() && filename_ != "-")
 	{
 		is_ = new std::ifstream{ filename_ };
-		if (!*is_) throw std::ios::failure("failed to open file " + filename_);
+		if (!*is_)
+		{
+			parser::location loc{ &filename_ };
+			error_.error(utils::ErrorType::Other, loc) << "no such file or directory";
+			success_ = false;
+			finished_ = true;
+			return false;
+		}
 	}
 	lexer_.reset(new Lexer{ *is_, *os_ });
 	lexer_->set_debug(trace_scanning_);

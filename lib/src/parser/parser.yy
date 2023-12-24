@@ -83,6 +83,7 @@
   <int> NUMBER "number"
 ;
 
+%token ERROR "error";
 %token EOF 0 "end of file";
 
 %nterm <vat::ast::SharedSeqExp> exps_plural call_exps_plural call_seq_exp fn_args fn_args.rec;
@@ -198,7 +199,7 @@ fn_args.rec:
 ;
 %%
 
-void vat::parser::yyParser::error(const location_type& l, const std::string& m)
+void vat::parser::yyParser::error(location_type const& l, std::string const& m)
 {
-	driver.yyout() << l << ": " << m << std::endl;
+  driver.error(utils::ErrorType::Parsing, l) << ": " << m;
 }

@@ -21,10 +21,9 @@ namespace vat
 struct MainCtx
 {
 	std::string_view filename{};
-	parser::Parser parser;
 	ast::SharedAst ast{};
-	bool error{ false };
 	utils::ErrorManager em{};
+	parser::Parser parser{ em };
 	bool trace_binding{ false };
 };
 
@@ -62,7 +61,11 @@ int main(std::span<std::string_view const> args)
 		return 1;
 	}
 	main_parse(ctx);
-	if (ctx.error) return 2;
+	if (ctx.em)
+	{
+		std::cerr << ctx.em;
+		return utils::enum_code(ctx.em.type());
+	}
 	main_bind(ctx);
 	if (ctx.em)
 	{
@@ -97,7 +100,6 @@ int main_arg(MainCtx& ctx, std::string_view arg, std::optional<std::string_view>
 MainCtx& main_parse(MainCtx& ctx)
 {
 	ctx.ast = ctx.parser.parse(ctx.filename);
-	ctx.error = ctx.ast == nullptr;
 	return ctx;
 }
 

@@ -7,13 +7,14 @@
 
 // vat
 #include <vat/parser/driver.hh>
+#include <vat/utils/error.hh>
 
 namespace vat::parser
 {
 class Parser
 {
 public:
-	Parser() = default;
+	Parser(utils::ErrorManager& em);
 
 	ast::SharedAst parse(std::string_view filename);
 
@@ -24,6 +25,7 @@ private:
 	std::unordered_map<std::string_view, std::unique_ptr<Driver>> drivers_{};
 	bool trace_parsing_{ false };
 	bool trace_scanning_{ false };
+	utils::ErrorManager& error_;
 };
 
 } // namespace vat::parser

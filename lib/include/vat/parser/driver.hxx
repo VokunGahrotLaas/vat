@@ -11,6 +11,13 @@ inline Lexer& Driver::lexer() { return *lexer_; }
 
 inline parser::location& Driver::location() { return loc_; }
 
+inline utils::ErrorManager::Error& Driver::error(utils::ErrorType type) { return error(type, location()); }
+
+inline utils::ErrorManager::Error& Driver::error(utils::ErrorType type, parser::location const& loc)
+{
+	return error_.error(type, loc);
+}
+
 inline ast::SharedAst Driver::get_result() { return result_; }
 
 inline void Driver::set_result(ast::SharedAst result) { result_ = std::move(result); }

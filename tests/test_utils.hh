@@ -71,12 +71,34 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 		{
 			if (!file.is_regular_file() || file.path().extension() != ".vat") continue;
 			utils::ErrorManager em;
-			parser::Parser parser;
+			parser::Parser parser{ em };
 			ast::SharedAst ast = parser.parse(file.path().string());
-			if (fail_on == FailOn::Lexing || fail_on == FailOn::Parsing)
+			if (fail_on == FailOn::Lexing)
 			{
-				if (ast)
+				if (!(em.type() & utils::ErrorType::Lexing))
 				{
+					std::cerr << em;
+					std::cerr << file << ": lexing - should have failed but didn't" << std::endl;
+					code |= vat::utils::ErrorManager::Lexing;
+				}
+				else
+					std::cout << file << ": lexing - success" << std::endl;
+				continue;
+			}
+			if (em.type() & utils::ErrorType::Lexing)
+			{
+				std::cerr << em;
+				std::cerr << file << ": lexing - should have succeded but didn't" << std::endl;
+				code |= vat::utils::ErrorManager::Lexing;
+				continue;
+			}
+			std::cout << file << ": lexing - success" << std::endl;
+			if (success_until == SuccessUntil::Lexing) continue;
+			if (fail_on == FailOn::Parsing)
+			{
+				if (!(em.type() & utils::ErrorType::Parsing))
+				{
+					std::cerr << em;
 					std::cerr << file << ": parsing - should have failed but didn't" << std::endl;
 					code |= vat::utils::ErrorManager::Parsing;
 				}
@@ -84,14 +106,15 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 					std::cout << file << ": parsing - success" << std::endl;
 				continue;
 			}
-			if (!ast)
+			if (em.type() & utils::ErrorType::Parsing)
 			{
+				std::cerr << em;
 				std::cerr << file << ": parsing - should have succeded but didn't" << std::endl;
 				code |= vat::utils::ErrorManager::Parsing;
 				continue;
 			}
 			std::cout << file << ": parsing - success" << std::endl;
-			if (success_until == SuccessUntil::Lexing || success_until == SuccessUntil::Parsing) continue;
+			if (success_until == SuccessUntil::Parsing) continue;
 			bind::Binder binder{ em };
 			binder.bind(*ast);
 			if (fail_on == FailOn::Binding)

@@ -3,6 +3,10 @@
 namespace vat::parser
 {
 
+Parser::Parser(utils::ErrorManager& em)
+	: error_{ em }
+{}
+
 ast::SharedAst Parser::parse(std::string_view filename)
 {
 	if (auto const it = drivers_.find(filename); it != drivers_.end())
@@ -11,7 +15,7 @@ ast::SharedAst Parser::parse(std::string_view filename)
 		return it->second->get_result();
 	}
 
-	auto driver = std::make_unique<Driver>(filename, trace_parsing_, trace_scanning_);
+	auto driver = std::make_unique<Driver>(filename, error_, trace_parsing_, trace_scanning_);
 	auto [it, _] = drivers_.insert({ driver->filename(), std::move(driver) });
 	if (!it->second->parse()) return {};
 	return it->second->get_result();
