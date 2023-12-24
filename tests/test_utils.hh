@@ -11,8 +11,8 @@
 #include <vat/parser/parser.hh>
 #include <vat/utils/error.hh>
 
-static constexpr auto good_assets = std::to_array<std::string_view>({
-	"test_assets/good",
+static constexpr auto lexing_assets = std::to_array<std::string_view>({
+	"test_assets/lexing",
 });
 
 static constexpr auto parsing_assets = std::to_array<std::string_view>({
@@ -25,6 +25,10 @@ static constexpr auto binding_assets = std::to_array<std::string_view>({
 
 static constexpr auto typing_assets = std::to_array<std::string_view>({
 	"test_assets/typing",
+});
+
+static constexpr auto good_assets = std::to_array<std::string_view>({
+	"test_assets/good",
 });
 
 enum class FailOn
@@ -88,11 +92,11 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 			}
 			std::cout << file << ": parsing - success" << std::endl;
 			if (success_until == SuccessUntil::Lexing || success_until == SuccessUntil::Parsing) continue;
-			bind::Binder binder;
-			bool binding = binder.bind(*ast);
+			bind::Binder binder{ em };
+			binder.bind(*ast);
 			if (fail_on == FailOn::Binding)
 			{
-				if (binding)
+				if (!em)
 				{
 					std::cerr << file << ": binding - should have failed but didn't" << std::endl;
 					code |= vat::utils::ErrorManager::Binding;
@@ -101,8 +105,9 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 					std::cout << file << ": binding - success" << std::endl;
 				continue;
 			}
-			if (!binding)
+			if (em)
 			{
+				std::cerr << em;
 				std::cerr << file << ": binding - should have succeded but didn't" << std::endl;
 				code |= vat::utils::ErrorManager::Binding;
 				continue;

@@ -64,9 +64,12 @@ int main(std::span<std::string_view const> args)
 	main_parse(ctx);
 	if (ctx.error) return 2;
 	main_bind(ctx);
-	if (ctx.error) return 3;
+	if (ctx.em)
+	{
+		std::cerr << ctx.em;
+		return utils::enum_code(ctx.em.type());
+	}
 	main_print(ctx);
-	if (ctx.error) return 1;
 	main_eval(ctx);
 	if (ctx.em)
 	{
@@ -107,13 +110,12 @@ MainCtx& main_print(MainCtx& ctx)
 
 MainCtx& main_bind(MainCtx& ctx)
 {
-	ctx.error = !bind::Binder{}.bind(*ctx.ast);
+	bind::Binder{ ctx.em }.bind(*ctx.ast);
 	return ctx;
 }
 
 MainCtx& main_eval(MainCtx& ctx)
 {
-	if (ctx.em) return ctx;
 	eval::ast_exp::exp_type exp = eval::AstEvaluator{ ctx.em }.eval(*ctx.ast);
 	if (ctx.em) return ctx;
 	eval::AstEvaluator::print_exp(std::cout, exp);
