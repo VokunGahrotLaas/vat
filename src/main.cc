@@ -8,6 +8,7 @@
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
 #include <vat/parse/parser.hh>
+#include <vat/type/type_checker.hh>
 #include <vat/utils/error.hh>
 #include <vat/utils/scoped_map.hh>
 #include <vat/utils/tasks.hh>
@@ -25,6 +26,7 @@ struct MainCtx
 	utils::ErrorManager em{};
 	parse::Parser parser{ em };
 	bool trace_binding{ false };
+	bool trace_types{ false };
 };
 
 int main(std::span<std::string_view const> args);
@@ -33,6 +35,7 @@ int main_arg(MainCtx& ctx, std::string_view arg, std::optional<std::string_view>
 MainCtx& main_parse(MainCtx& ctx);
 MainCtx& main_print(MainCtx& ctx);
 MainCtx& main_bind(MainCtx& ctx);
+MainCtx& main_type(MainCtx& ctx);
 MainCtx& main_eval(MainCtx& ctx);
 
 } // namespace vat
@@ -72,6 +75,12 @@ int main(std::span<std::string_view const> args)
 		std::cerr << ctx.em;
 		return utils::enum_code(ctx.em.type());
 	}
+	main_type(ctx);
+	if (ctx.em)
+	{
+		std::cerr << ctx.em;
+		return utils::enum_code(ctx.em.type());
+	}
 	main_print(ctx);
 	main_eval(ctx);
 	if (ctx.em)
@@ -90,6 +99,8 @@ int main_arg(MainCtx& ctx, std::string_view arg, std::optional<std::string_view>
 		ctx.parser.set_trace_scanning(true);
 	else if (arg == "-b")
 		ctx.trace_binding = true;
+	else if (arg == "-t")
+		ctx.trace_types = true;
 	else if (arg == "-m")
 		utils::ScopedMapDebug::set(true);
 	else
@@ -105,7 +116,7 @@ MainCtx& main_parse(MainCtx& ctx)
 
 MainCtx& main_print(MainCtx& ctx)
 {
-	ast::PrintVisitor{ std::cout, true, ctx.trace_binding }(*ctx.ast);
+	ast::PrintVisitor{ std::cout, true, ctx.trace_binding, ctx.trace_types }(*ctx.ast);
 	std::cout << std::endl;
 	return ctx;
 }
@@ -113,6 +124,12 @@ MainCtx& main_print(MainCtx& ctx)
 MainCtx& main_bind(MainCtx& ctx)
 {
 	bind::Binder{ ctx.em }.bind(*ctx.ast);
+	return ctx;
+}
+
+MainCtx& main_type(MainCtx& ctx)
+{
+	type::TypeChecker{ ctx.em }.type(*ctx.ast);
 	return ctx;
 }
 

@@ -28,7 +28,7 @@ BISON_SRC_LOCATION = ${build}/lib/src/parse/location.hh
 BISON_OUT = ${build}/lib/src/parse/parser.yy.cc
 BISON_OBJ = ${BISON_OUT:.cc=.o}
 
-LIB_DIRS = lib/src/utils lib/src/bind lib/src/eval lib/src/ast lib/src/parse lib/src
+LIB_DIRS = lib/src/utils lib/src/type lib/src/bind lib/src/eval lib/src/ast lib/src/parse lib/src
 LIB_SRC = ${wildcard ${addsuffix /*.cc,${LIB_DIRS}}}
 LIB_OBJ = ${addprefix ${build}/,${LIB_SRC:.cc=.o}}
 LIB_HEADERS = ${FLEX_HEADER} ${BISON_HEADER} ${BISON_LOCATION} ${BISON_SRC_LOCATION}
@@ -126,7 +126,7 @@ gdb: ${EXEC}
 	LD_LIBRARY_PATH=${build} gdb -q $(gdb_args) --args $(EXEC) $(args)
 
 check_${build}/tests/%: ${build}/tests/% ${LIB} phony_explicit
-	./$< ${tests_args} > ${build}/tests/$*.log
+	./$< ${tests_args} >${build}/tests/$*.log 2>&1
 
 check: ${TESTS_EXEC} .WAIT ${TESTS_CHECK}
 

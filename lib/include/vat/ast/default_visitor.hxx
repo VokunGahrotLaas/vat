@@ -59,6 +59,7 @@ template <template <typename> typename Const>
 void GenDefaultVisitor<Const>::operator()(Const<FnExp>& fn_exp)
 {
 	fn_exp.args().accept(*this);
+	fn_exp.return_type().accept(*this);
 	fn_exp.body().accept(*this);
 }
 
@@ -73,6 +74,7 @@ template <template <typename> typename Const>
 void GenDefaultVisitor<Const>::operator()(Const<LetExp>& let_exp)
 {
 	let_exp.name().accept(*this);
+	if (let_exp.has_type_name()) let_exp.type_name().accept(*this);
 	if (let_exp.has_value()) let_exp.value().accept(*this);
 }
 
@@ -89,7 +91,9 @@ void GenDefaultVisitor<Const>::operator()(Const<IfExp>& if_exp)
 }
 
 template <template <typename> typename Const>
-void GenDefaultVisitor<Const>::operator()(Const<Unit>&)
-{}
+void GenDefaultVisitor<Const>::operator()(Const<BlockExp>& block_exp)
+{
+	block_exp.exp().accept(*this);
+}
 
 } // namespace vat::ast

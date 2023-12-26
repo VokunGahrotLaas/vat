@@ -23,6 +23,10 @@ public:
 	iterator end();
 
 	std::vector<SharedConstExp> exps() const;
+	Exp const& front() const;
+	Exp const& back() const;
+	Exp& front();
+	Exp& back();
 
 	void push_back(SharedExp exp);
 	std::size_t size() const;

@@ -9,21 +9,22 @@
 #include <vat/bind/binder.hh>
 #include <vat/eval/ast.hh>
 #include <vat/parse/parser.hh>
+#include <vat/type/type_checker.hh>
 #include <vat/utils/error.hh>
 
-static constexpr auto lexing_assets = std::to_array<std::string_view>({
+static constexpr auto lex_assets = std::to_array<std::string_view>({
 	"test_assets/lex",
 });
 
-static constexpr auto parsing_assets = std::to_array<std::string_view>({
+static constexpr auto parse_assets = std::to_array<std::string_view>({
 	"test_assets/parse",
 });
 
-static constexpr auto binding_assets = std::to_array<std::string_view>({
+static constexpr auto bind_assets = std::to_array<std::string_view>({
 	"test_assets/bind",
 });
 
-static constexpr auto typing_assets = std::to_array<std::string_view>({
+static constexpr auto type_assets = std::to_array<std::string_view>({
 	"test_assets/type",
 });
 
@@ -141,6 +142,28 @@ int tests_on(std::array<std::string_view, N> assets, FailOn fail_on = FailOn::No
 			}
 			std::cout << "binding - success: " << file << std::endl;
 			if (success_until == SuccessUntil::Binding) continue;
+			type::TypeChecker type_checker{ em };
+			type_checker.type(*ast);
+			if (fail_on == FailOn::Typing)
+			{
+				if (!em)
+				{
+					std::cerr << "typing - should have failed but didn't: " << file << std::endl;
+					code |= vat::utils::ErrorManager::Typing;
+				}
+				else
+					std::cout << "typing - success: " << file << std::endl;
+				continue;
+			}
+			if (em)
+			{
+				std::cerr << em;
+				std::cerr << "typing - should have succeded but didn't: " << file << std::endl;
+				code |= vat::utils::ErrorManager::Typing;
+				continue;
+			}
+			std::cout << "typing - success: " << file << std::endl;
+			if (success_until == SuccessUntil::Typing) continue;
 			eval::AstEvaluator evaluator{ em };
 			eval::ast_exp::exp_type exp = evaluator.eval(*ast);
 			if (fail_on == FailOn::Typing || fail_on == FailOn::Evaluation)

@@ -1,7 +1,7 @@
 #include <vat/ast/if_exp.hh>
 
 // vat
-#include <vat/ast/unit.hh>
+#include <vat/ast/name.hh>
 
 namespace vat::ast
 {
@@ -10,7 +10,7 @@ IfExp::IfExp(Location const& location, SharedExp cond, SharedExp then_exp, Share
 	: Exp{ location }
 	, cond_{ std::move(cond) }
 	, then_exp_{ std::move(then_exp) }
-	, else_exp_{ else_exp != nullptr ? std::move(else_exp) : std::make_shared<Unit>(location) }
+	, else_exp_{ else_exp != nullptr ? std::move(else_exp) : std::make_shared<Name>(location, "()") }
 {}
 
 void IfExp::accept(Visitor& visitor) { visitor(*this); }

@@ -1,6 +1,7 @@
 #pragma once
 
 // STL
+#include <initializer_list>
 #include <optional>
 #include <unordered_map>
 #include <vector>

@@ -27,7 +27,7 @@ public:
 	void operator()(Const<LetExp>& let_exp) override;
 	void operator()(Const<Bool>& bool_exp) override;
 	void operator()(Const<IfExp>& if_exp) override;
-	void operator()(Const<Unit>& unit) override;
+	void operator()(Const<BlockExp>& block_exp) override;
 };
 
 using DefaultVisitor = GenDefaultVisitor<std::type_identity_t>;

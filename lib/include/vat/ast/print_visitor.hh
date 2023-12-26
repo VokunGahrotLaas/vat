@@ -12,7 +12,8 @@ namespace vat::ast
 class PrintVisitor : public ConstVisitor
 {
 public:
-	PrintVisitor(std::ostream& os = std::cout, bool explicit_perens = false, bool trace_binding = false);
+	PrintVisitor(std::ostream& os = std::cout, bool explicit_perens = false, bool trace_binding = false,
+				 bool trace_typing = false);
 
 	void operator()(Ast const& ast) override;
 	void operator()(Exp const& exp) override;
@@ -27,7 +28,7 @@ public:
 	void operator()(LetExp const& let_exp) override;
 	void operator()(Bool const& bool_exp) override;
 	void operator()(IfExp const& if_exp) override;
-	void operator()(Unit const& unit) override;
+	void operator()(BlockExp const& block_exp) override;
 
 private:
 	void endline() const;
@@ -35,6 +36,7 @@ private:
 	std::ostream& os_;
 	bool explicit_perens_;
 	bool trace_binding_;
+	bool trace_typing_;
 	std::size_t indent_{};
 };
 

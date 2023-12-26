@@ -44,6 +44,7 @@ blank   [ \t\r]
 \n+        driver.location().lines(YYLeng()); driver.location().step();
 
 "let"      return MAKE_TOKEN_NOARG(LET);
+"rec"      return MAKE_TOKEN_NOARG(REC);
 "fn"       return MAKE_TOKEN_NOARG(FN);
 "if"       return MAKE_TOKEN_NOARG(IF);
 "then"     return MAKE_TOKEN_NOARG(THEN);
@@ -65,11 +66,14 @@ blank   [ \t\r]
 "%"        return MAKE_TOKEN_NOARG(MOD);
 "**"       return MAKE_TOKEN_NOARG(POWER);
 ";"        return MAKE_TOKEN_NOARG(SEMICOLON);
+":"        return MAKE_TOKEN_NOARG(COLON);
+"->"       return MAKE_TOKEN_NOARG(ARROW);
 ","        return MAKE_TOKEN_NOARG(COMMA);
 "("        return MAKE_TOKEN_NOARG(LPAREN);
 ")"        return MAKE_TOKEN_NOARG(RPAREN);
 "{"        return MAKE_TOKEN_NOARG(LBRACE);
 "}"        return MAKE_TOKEN_NOARG(RBRACE);
+"!"        return MAKE_TOKEN_NOARG(EXCLAM);
 
 {inv_id}   vat::parse::lexer::make_ERROR(driver, "invalid identifier: " + std::string{YYText()}); return MAKE_TOKEN(IDENTIFIER, std::string{YYText()});
 {id}       return MAKE_TOKEN(IDENTIFIER, std::string{YYText()});

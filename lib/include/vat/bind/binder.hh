@@ -1,5 +1,8 @@
 #pragma once
 
+// STL
+#include <unordered_set>
+
 // vat
 #include <vat/ast/default_visitor.hh>
 #include <vat/utils/error.hh>
@@ -27,7 +30,9 @@ private:
 	// scope
 	void operator()(ast::FnExp& fn_exp) override;
 	void operator()(ast::IfExp& if_exp) override;
+	void operator()(ast::BlockExp& block_exp) override;
 
+	static std::unordered_set<std::string> const static_vars_;
 	utils::ScopedMap<std::string_view, ast::SharedConstLetExp> lets_{};
 	utils::ErrorManager& error_;
 };

@@ -20,7 +20,7 @@ class CallExp;
 class LetExp;
 class Bool;
 class IfExp;
-class Unit;
+class BlockExp;
 
 using SharedAst = std::shared_ptr<Ast>;
 using SharedConstAst = std::shared_ptr<Ast const>;
@@ -46,8 +46,8 @@ using SharedBool = std::shared_ptr<Bool>;
 using SharedConstBool = std::shared_ptr<Bool const>;
 using SharedIfExp = std::shared_ptr<IfExp>;
 using SharedConstIfExp = std::shared_ptr<IfExp const>;
-using SharedUnit = std::shared_ptr<Unit>;
-using SharedConstUnit = std::shared_ptr<Unit const>;
+using SharedBlockExp = std::shared_ptr<BlockExp>;
+using SharedConstBlockExp = std::shared_ptr<BlockExp const>;
 
 template <template <typename> typename Const>
 class GenVisitor;

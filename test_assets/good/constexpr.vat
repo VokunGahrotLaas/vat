@@ -1,0 +1,5 @@
+fn my_int() -> type {
+	int
+};
+let a: my_int() = 0;
+a

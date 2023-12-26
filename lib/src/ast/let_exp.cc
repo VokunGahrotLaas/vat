@@ -3,10 +3,12 @@
 namespace vat::ast
 {
 
-LetExp::LetExp(Location const& location, SharedName name, SharedExp value)
+LetExp::LetExp(Location const& location, bool is_rec, SharedName name, SharedExp type_name, SharedExp value)
 	: Exp{ location }
 	, name_{ std::move(name) }
+	, type_name_{ std::move(type_name) }
 	, value_{ std::move(value) }
+	, is_rec_{ is_rec }
 {}
 
 void LetExp::accept(Visitor& visitor) { visitor(*this); }

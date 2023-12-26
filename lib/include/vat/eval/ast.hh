@@ -9,6 +9,7 @@
 #include <vat/ast/all.hh>
 #include <vat/ast/visitor.hh>
 #include <vat/eval/evaluator.hh>
+#include <vat/type/all.hh>
 #include <vat/utils/error.hh>
 #include <vat/utils/scoped_map.hh>
 
@@ -24,9 +25,11 @@ using bool_type = bool;
 
 using int_type = int;
 
+using type_type = type::SharedConstType;
+
 using function_type = ast::SharedConstFnExp;
 
-using exp_type = std::variant<unit_type, bool_type, int_type, function_type>;
+using exp_type = std::variant<unit_type, bool_type, int_type, function_type, type_type>;
 
 }; // namespace ast_exp
 
@@ -50,7 +53,7 @@ public:
 	void operator()(ast::LetExp const& let_exp) override;
 	void operator()(ast::Bool const& bool_exp) override;
 	void operator()(ast::IfExp const& if_exp) override;
-	void operator()(ast::Unit const& unit) override;
+	void operator()(ast::BlockExp const& block_exp) override;
 
 	exp_type eval(input_type input) override;
 	void reset() override;
@@ -60,6 +63,7 @@ public:
 private:
 	utils::ErrorManager& error_;
 	utils::ScopedMap<ast::SharedConstLetExp, exp_type> vars_{};
+	static std::unordered_map<std::string, exp_type> const static_vars_;
 	exp_type result_{};
 };
 
