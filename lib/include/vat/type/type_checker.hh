@@ -35,6 +35,7 @@ protected:
 	void operator()(ast::UnaryOp& unary_op) override;
 	void operator()(ast::BinaryOp& binary_op) override;
 	void operator()(ast::FnExp& fn_exp) override;
+	void operator()(ast::FnTy& fn_ty) override;
 	void operator()(ast::CallExp& call_exp) override;
 	void operator()(ast::LetExp& let_exp) override;
 	void operator()(ast::Bool& bool_exp) override;

@@ -1,0 +1,4 @@
+let binop = fn (int, int) -> int;
+fn add(int, int) -> int { 0 };
+let add1 : binop = add;
+add1

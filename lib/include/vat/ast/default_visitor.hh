@@ -23,6 +23,7 @@ public:
 	void operator()(Const<UnaryOp>& unary_op) override;
 	void operator()(Const<BinaryOp>& binary_op) override;
 	void operator()(Const<FnExp>& fn_exp) override;
+	void operator()(Const<FnTy>& fn_ty) override;
 	void operator()(Const<CallExp>& call_exp) override;
 	void operator()(Const<LetExp>& let_exp) override;
 	void operator()(Const<Bool>& bool_exp) override;

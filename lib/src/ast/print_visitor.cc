@@ -96,6 +96,26 @@ void PrintVisitor::operator()(FnExp const& fn_exp)
 	os_ << '}';
 }
 
+void PrintVisitor::operator()(FnTy const& fn_ty)
+{
+	os_ << "fn (";
+	auto const exps = fn_ty.args().exps();
+	auto it = exps.begin();
+	if (it != exps.end()) (*it++)->accept(*this);
+	while (it != exps.end())
+	{
+		os_ << ", ";
+		(*it++)->accept(*this);
+	}
+	++indent_;
+	os_ << ")";
+	if (auto name = dynamic_cast<Name const*>(&fn_ty.return_type()); name == nullptr || name->value() == "()")
+	{
+		os_ << " -> ";
+		fn_ty.return_type().accept(*this);
+	}
+}
+
 void PrintVisitor::operator()(CallExp const& call_exp)
 {
 	call_exp.function().accept(*this);

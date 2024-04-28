@@ -1,3 +1,4 @@
+#include <memory>
 #include <vat/eval/ast.hh>
 
 // STL
@@ -7,6 +8,7 @@
 // vat
 #include <vat/utils/utils.hh>
 #include <vat/utils/variant.hh>
+#include "vat/ast/fwd.hh"
 
 namespace vat::eval
 {
@@ -18,6 +20,7 @@ std::unordered_map<std::string, AstEvaluator::exp_type> const AstEvaluator::stat
 	{ "type", type::TypeType::instance()},
 	{ "!",	   type::Never::instance()   },
 	{ "()",	{}						   },
+// TODO:	{ "assert",	std::make_shared<ast::FnExp>() },
 };
 
 AstEvaluator::AstEvaluator(utils::ErrorManager& em)
@@ -98,6 +101,8 @@ void AstEvaluator::operator()(ast::BinaryOp const& binary_op)
 }
 
 void AstEvaluator::operator()(ast::FnExp const& fn_exp) { result_ = shared_from_ast(fn_exp); }
+
+void AstEvaluator::operator()(ast::FnTy const& fn_ty) { result_ = fn_ty.value(); }
 
 void AstEvaluator::operator()(ast::CallExp const& call_exp)
 {

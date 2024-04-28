@@ -105,6 +105,26 @@ void TypeChecker::operator()(ast::FnExp& fn_exp)
 	}
 }
 
+void TypeChecker::operator()(ast::FnTy& fn_ty)
+{
+	fn_ty.args().accept(*this);
+	fn_ty.return_type().accept(*this);
+	SharedConstType return_type = Never::instance();
+	check_same(fn_ty.return_type().location(), *TypeType::instance(), *fn_ty.return_type().type());
+	auto res = constexpr_eval_.eval(fn_ty.return_type());
+	auto ptr = std::get_if<SharedConstType>(&res);
+	if (!ptr)
+		error_.error(utils::ErrorType::Typing, fn_ty.return_type().location())
+			<< "fn's return type did not return a type";
+	else
+		return_type = *ptr;
+	std::vector<SharedConstType> args(fn_ty.args().size());
+	for (std::size_t i = 0; i < args.size(); ++i)
+		args[i] = fn_ty.args()[i].type();
+	fn_ty.type(TypeType::instance());
+	fn_ty.value(std::make_shared<Fn const>(return_type, std::move(args)));
+}
+
 void TypeChecker::operator()(ast::CallExp& call_exp)
 {
 	super_type::operator()(call_exp);

@@ -49,6 +49,7 @@ public:
 	void operator()(ast::UnaryOp const& unary_op) override;
 	void operator()(ast::BinaryOp const& binary_op) override;
 	void operator()(ast::FnExp const& fn_exp) override;
+	void operator()(ast::FnTy const& fn_ty) override;
 	void operator()(ast::CallExp const& call_exp) override;
 	void operator()(ast::LetExp const& let_exp) override;
 	void operator()(ast::Bool const& bool_exp) override;

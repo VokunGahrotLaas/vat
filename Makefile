@@ -113,16 +113,16 @@ ${BISON_OUT}: ${BISON_SRC} | ${BUILD_DIRS}
 	${BISON} ${BISONFLAGS} --defines=${BISON_HEADER} -o ${BISON_OUT} $<
 	mv ${BISON_SRC_LOCATION} ${BISON_LOCATION}
 
-${FLEX_OBJ}: ${FLEX_OUT} ${BISON_OUT}
+${FLEX_OBJ}: ${FLEX_OUT} | ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -fPIC -o $@ -c ${FLEX_OUT}
 
-${BISON_OBJ}: ${FLEX_OUT} ${BISON_OUT}
+${BISON_OBJ}: ${BISON_OUT} | ${FLEX_OUT}
 	+${CXX} ${CXXFLAGS} -I${build}/lib/include/vat/parse -fPIC -o $@ -c ${BISON_OUT}
 
-${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc ${FLEX_OUT} ${BISON_OUT}
+${LIB_OBJ}: ${build}/lib/src/%.o: lib/src/%.cc | ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -fPIC -o $@ -c $<
 
-${build}/src/%.o: src/%.cc ${FLEX_OUT} ${BISON_OUT}
+${build}/src/%.o: src/%.cc | ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -Wold-style-cast -o $@ -c $<
 
 ${LIB}: ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ}
@@ -131,7 +131,7 @@ ${LIB}: ${LIB_OBJ} ${FLEX_OBJ} ${BISON_OBJ}
 $(EXEC): ${OBJ} | ${LIB}
 	+${CXX} -o $@ $^ -L${build} -lvat ${LDFLAGS}
 
-${build}/tests/%.o: tests/%.cc ${FLEX_OUT} ${BISON_OUT} | ${BUILD_DIRS}
+${build}/tests/%.o: tests/%.cc | ${FLEX_OUT} ${BISON_OUT}
 	+${CXX} ${CXXFLAGS} -o $@ -c $<
 
 ${build}/tests/%: ${build}/tests/%.o | ${LIB}

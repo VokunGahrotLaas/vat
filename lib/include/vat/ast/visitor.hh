@@ -24,6 +24,7 @@ public:
 	virtual void operator()(Const<UnaryOp>&) = 0;
 	virtual void operator()(Const<BinaryOp>&) = 0;
 	virtual void operator()(Const<FnExp>&) = 0;
+	virtual void operator()(Const<FnTy>&) = 0;
 	virtual void operator()(Const<CallExp>&) = 0;
 	virtual void operator()(Const<LetExp>&) = 0;
 	virtual void operator()(Const<Bool>&) = 0;

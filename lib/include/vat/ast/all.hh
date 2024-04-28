@@ -8,6 +8,7 @@
 #include <vat/ast/call_exp.hh>
 #include <vat/ast/exp.hh>
 #include <vat/ast/fn_exp.hh>
+#include <vat/ast/fn_ty.hh>
 #include <vat/ast/fwd.hh>
 #include <vat/ast/if_exp.hh>
 #include <vat/ast/let_exp.hh>

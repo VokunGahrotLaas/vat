@@ -24,6 +24,7 @@ public:
 	void operator()(UnaryOp const& unary_op) override;
 	void operator()(BinaryOp const& binary_op) override;
 	void operator()(FnExp const& fn_exp) override;
+	void operator()(FnTy const& fn_ty) override;
 	void operator()(CallExp const& call_exp) override;
 	void operator()(LetExp const& let_exp) override;
 	void operator()(Bool const& bool_exp) override;

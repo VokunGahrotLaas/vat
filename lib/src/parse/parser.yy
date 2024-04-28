@@ -91,9 +91,9 @@
 %token EOF 0 "end of file";
 
 %nterm <vat::ast::SharedSeqExp> exps_plural call_exps_plural call_seq_exp fn_args fn_args.rec;
-%nterm <vat::ast::SharedExp> exps exp rhs_exp fn_exp;
+%nterm <vat::ast::SharedExp> exps exp rhs_exp fn_exp fn_ty fn_arg;
 %nterm <vat::ast::SharedBlockExp> block_exp;
-%nterm <vat::ast::SharedLetExp> let_exp fn_arg;
+%nterm <vat::ast::SharedLetExp> let_exp;
 %nterm <vat::ast::SharedName> lhs_name rhs_name lhs_exp;
 %nterm <vat::ast::SharedBool> bool_exp;
 
@@ -107,7 +107,8 @@
 %left "*" "/" "%";
 %precedence POS NEG;
 %right "**";
-%precedence "(";
+%right "->";
+%precedence "(" "{";
 
 %printer { driver.yyout() << $$; } <std::string> <int>;
 %printer {
@@ -143,6 +144,10 @@ call_seq_exp:
 exp:
   rhs_exp
 | lhs_exp { $$ = $1; }
+;
+
+fn_ty:
+  "fn" "(" fn_args ")" "->" exp { $$ = std::make_shared<FnTy>(@$, $3, $6); }
 ;
 
 fn_exp:
@@ -185,6 +190,7 @@ rhs_exp:
 | rhs_name                       { $$ = $1; }
 | block_exp                      { $$ = $1; }
 | fn_exp
+| fn_ty
 ;
 
 lhs_exp:
@@ -210,6 +216,7 @@ rhs_name:
 
 fn_arg:
   lhs_name ":" exp { $$ = std::make_shared<LetExp>(@$, false, $1, $3, nullptr); }
+| exp              { $$ = $1; }
 ;
 
 fn_args:

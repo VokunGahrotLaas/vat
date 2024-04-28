@@ -64,6 +64,13 @@ void GenDefaultVisitor<Const>::operator()(Const<FnExp>& fn_exp)
 }
 
 template <template <typename> typename Const>
+void GenDefaultVisitor<Const>::operator()(Const<FnTy>& fn_ty)
+{
+	fn_ty.args().accept(*this);
+	fn_ty.return_type().accept(*this);
+}
+
+template <template <typename> typename Const>
 void GenDefaultVisitor<Const>::operator()(Const<CallExp>& call_exp)
 {
 	call_exp.function().accept(*this);
