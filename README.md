@@ -1,22 +1,12 @@
 # VokunAavroTinvaak
 
-An interpreter for a custom programming language called vat. \
-Written in C++ using flex++/bison++.
+A compiler for a custom programming language called vat.
 
-## Status
+## Features
 
-* simple grammar and ast
-* simple variable binder
-* simple pretty printer and ast based vm
+* looks great (in my head)
 
-## TODOs
+## TODO
 
-* add to grammar and ast
-* type checker
-
-## Future
-
-* compile to bytecode + vm
-* integrate with llvm backend
-* language server
-* [vscode extension](https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide)
+* write a bootstrap compiler in C
+* write a compiler in vat
