@@ -2,9 +2,11 @@
 
 bool stream_from_file(struct stream* stream, char const* filename)
 {
-	stream->stream = fopen(filename, "rb");
+	stream->stream = fopen(filename, "r");
 	stream->eof = false;
 	stream->current = EOF;
+	stream->line = 1;
+	stream->column = 1;
 	return stream->stream != NULL;
 }
 
@@ -24,8 +26,14 @@ int stream_peek(struct stream* stream)
 
 int stream_pop(struct stream* stream)
 {
-	stream_peek(stream);
-	int current = stream->current;
+	int current = stream_peek(stream);
 	stream->current = EOF;
+	if (current == '\n')
+	{
+		++stream->line;
+		stream->column = 1;
+	}
+	else if (current != EOF)
+		++stream->column;
 	return current;
 }

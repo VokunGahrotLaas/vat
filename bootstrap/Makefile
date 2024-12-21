@@ -16,6 +16,7 @@ OBJ = ${SRC:%.c=${builddir}/%.o}
 
 ifeq (${mode},debug)
 O = 0
+CPPFLAGS += -DBOOTSTRAP_DEBUG
 CCFLAGS += -ggdb3
 LDFLAGS += -ggdb3
 else ifeq (${mode},release)
