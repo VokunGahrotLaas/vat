@@ -6,35 +6,29 @@ A compiler for a custom programming language called vat.
 
 TBD
 
+## Syntax
+
+See [Syntax](./README-Syntax.md)
+
 ## Finished
 
-* bootstrap compiler:
+* bootstrap vatc in C
   * lexer
+
+## Current tasks
+
+* bootstrap vatc in C
+  * syntax
+  * parser
 
 ## TODO
 
-* write a basic syntax
-  * basic types
-  * functions
-  * structs
-  * tagged unions
-  * attributes (c\_name)
-  * external
-  * arithmetic operators
-  * modules
-  * libc bindings/wrappers module ?
-  * standard lib module
-    * str
-    * list
-    * dict
-    * set
-* write a bootstrap vatc in C
-  * parser
+* bootstrap vatc in C
   * type checker ?
   * transpile to c
   * parse args
   * tests
-* write vatc in vat
+* vatc in vat
   * lexer
   * parser
   * type checker
@@ -44,7 +38,7 @@ TBD
   * transpile to bytecode + vm
   * parse args
   * tests
-* write a more interesting syntax
+* a more interesting syntax
   * compile time functions
   * overloading
   * classes

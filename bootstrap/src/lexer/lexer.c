@@ -4,17 +4,22 @@
 #include <ctype.h>
 
 static inline struct location lexer_loc_ctor(struct lexer* lexer);
+static inline struct location lexer_loc_ctor_peek(struct lexer* lexer);
 static inline void lexer_loc_end(struct lexer* lexer, struct location* loc);
 
+static inline bool is_letter(int c);
+static inline bool is_op(int c);
+
 static inline void lexer_lex(struct lexer* lexer);
-static inline void lexer_lex_u64(struct lexer* lexer);
-static inline void lexer_lex_str(struct lexer* lexer);
+static inline void lexer_lex_num(struct lexer* lexer);
+static inline void lexer_lex_word(struct lexer* lexer);
+static inline void lexer_lex_op(struct lexer* lexer);
 
 bool lexer_from_file(struct lexer* lexer, char const* filename)
 {
 	lexer->filename = filename;
 	lexer->state = LEXER_NONE;
-	token_from_type(&lexer->current, NULL, TOKEN_NONE);
+	token_of_type(&lexer->current, NULL, TOKEN_NONE);
 	return stream_from_file(&lexer->stream, filename);
 }
 
@@ -32,7 +37,7 @@ struct token lexer_peek(struct lexer* lexer)
 	case LEXER_NONE: lexer_lex(lexer); break;
 	case LEXER_EOF: {
 		struct location loc = lexer_loc_ctor(lexer);
-		token_from_type(&lexer->current, &loc, TOKEN_EOF);
+		token_of_type(&lexer->current, &loc, TOKEN_EOF);
 		break;
 	}
 	};
@@ -42,7 +47,7 @@ struct token lexer_peek(struct lexer* lexer)
 struct token lexer_pop(struct lexer* lexer)
 {
 	struct token current = lexer_peek(lexer);
-	token_from_type(&lexer->current, NULL, TOKEN_NONE);
+	token_of_type(&lexer->current, NULL, TOKEN_NONE);
 	return current;
 }
 
@@ -57,10 +62,36 @@ static inline struct location lexer_loc_ctor(struct lexer* lexer)
 	};
 }
 
+static inline struct location lexer_loc_ctor_peek(struct lexer* lexer)
+{
+	return (struct location){
+		.filename = lexer->filename,
+		.first_line = lexer->stream.peek_line,
+		.first_column = lexer->stream.peek_column,
+		.last_line = lexer->stream.peek_line,
+		.last_column = lexer->stream.peek_column,
+	};
+}
+
 static inline void lexer_loc_end(struct lexer* lexer, struct location* loc)
 {
 	loc->last_line = lexer->stream.line;
 	loc->last_column = lexer->stream.column;
+}
+
+static inline bool is_letter(int c) { return isalnum(c) || c == '_'; }
+
+static inline bool is_op(int c)
+{
+	switch (c)
+	{
+	case ';': FALLTHROUGH;
+	case '(': FALLTHROUGH;
+	case ')': FALLTHROUGH;
+	case '+': FALLTHROUGH;
+	case '-': return true;
+	default: return false;
+	};
 }
 
 static inline void lexer_lex(struct lexer* lexer)
@@ -71,25 +102,33 @@ static inline void lexer_lex(struct lexer* lexer)
 	{
 		stream_pop(&lexer->stream);
 		struct location loc = lexer_loc_ctor(lexer);
-		lexer_loc_end(lexer, &loc);
-		token_from_type(&lexer->current, &loc, TOKEN_NEWLINE);
+		token_of_type(&lexer->current, &loc, TOKEN_NEWLINE);
 	}
 	else if (stream_peek(&lexer->stream) == EOF)
 	{
+		stream_pop(&lexer->stream);
 		struct location loc = lexer_loc_ctor(lexer);
-		lexer_loc_end(lexer, &loc);
-		token_from_type(&lexer->current, &loc, TOKEN_EOF);
+		token_of_type(&lexer->current, &loc, TOKEN_EOF);
 		lexer->state = LEXER_EOF;
 	}
 	else if (isdigit(stream_peek(&lexer->stream)))
-		lexer_lex_u64(lexer);
+		lexer_lex_num(lexer);
+	else if (is_letter(stream_peek(&lexer->stream)))
+		lexer_lex_word(lexer);
+	else if (is_op(stream_peek(&lexer->stream)))
+		lexer_lex_op(lexer);
 	else
-		lexer_lex_str(lexer);
+	{
+		struct location loc = lexer_loc_ctor_peek(lexer);
+		location_print(&loc, stderr);
+		fprintf(stderr, ": invalid character found (%c)\n", (unsigned char)stream_peek(&lexer->stream));
+		exit(1);
+	}
 }
 
-static inline void lexer_lex_u64(struct lexer* lexer)
+static inline void lexer_lex_num(struct lexer* lexer)
 {
-	struct location loc = lexer_loc_ctor(lexer);
+	struct location loc = lexer_loc_ctor_peek(lexer);
 	uint64_t v = 0;
 	while (isdigit(stream_peek(&lexer->stream)))
 	{
@@ -98,19 +137,46 @@ static inline void lexer_lex_u64(struct lexer* lexer)
 		v += c - '0';
 	}
 	lexer_loc_end(lexer, &loc);
-	token_ctor_u64(&lexer->current, &loc, v);
+	token_ctor_num(&lexer->current, &loc, v);
 }
 
-static inline void lexer_lex_str(struct lexer* lexer)
+static inline void lexer_lex_word(struct lexer* lexer)
 {
-	struct location loc = lexer_loc_ctor(lexer);
+	struct location loc = lexer_loc_ctor_peek(lexer);
 	struct str v;
 	str_ctor(&v, 16);
-	while (!isspace(stream_peek(&lexer->stream)))
+	while (is_letter(stream_peek(&lexer->stream)))
 	{
 		char c = stream_pop(&lexer->stream);
 		str_pushc(&v, c);
 	}
 	lexer_loc_end(lexer, &loc);
-	token_ctor_str(&lexer->current, &loc, &v);
+	token_ctor_word(&lexer->current, &loc, &v);
+}
+
+static inline void lexer_lex_op(struct lexer* lexer)
+{
+	struct location loc = lexer_loc_ctor_peek(lexer);
+	struct str v;
+	str_ctor(&v, 1);
+	str_pushc(&v, stream_pop(&lexer->stream));
+	lexer_loc_end(lexer, &loc);
+	if (cv_cmp(cv_str(&v), cv_cstr(";")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_SEMICOLUMN);
+	else if (cv_cmp(cv_str(&v), cv_cstr("(")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_LPAREN);
+	else if (cv_cmp(cv_str(&v), cv_cstr(")")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_RPAREN);
+	else if (cv_cmp(cv_str(&v), cv_cstr("+")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_PLUS);
+	else if (cv_cmp(cv_str(&v), cv_cstr("-")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_MINUS);
+	else
+	{
+		location_print(&loc, stderr);
+		fprintf(stderr, ": invalid operator found (%s)\n", v.data);
+		str_dtor(&v);
+		exit(1);
+	}
+	str_dtor(&v);
 }

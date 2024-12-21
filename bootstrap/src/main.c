@@ -9,8 +9,10 @@ int main(int argc, char** argv)
 	if (argc != 2) errx(1, "invalid number of arguments");
 	struct lexer lexer;
 	lexer_from_file(&lexer, argv[1]);
-	while (lexer_peek(&lexer).type != TOKEN_EOF)
+	bool eof = false;
+	while (!eof)
 	{
+		if (lexer_peek(&lexer).type == TOKEN_EOF) eof = true;
 		struct token token = lexer_pop(&lexer);
 		location_print(&token.loc, stdout);
 		fputs(": ", stdout);

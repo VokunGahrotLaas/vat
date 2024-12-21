@@ -30,6 +30,7 @@ static inline struct cv cv_str(struct str* str);
 static inline struct cv cv_cstr(char const* cstr);
 static inline struct cv cv_sub(struct cv cv, size_t offset, size_t size);
 static inline void cv_print(struct cv cv, FILE* stream);
+static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs);
 
 static inline bool str_ctor(struct str* str, size_t capacity);
 static inline bool str_of_cv(struct str* str, struct cv cv);
@@ -76,6 +77,13 @@ static inline void cv_print(struct cv cv, FILE* stream)
 			fputc(cv.data[i], stream);
 		else
 			fprintf(stream, "\\x%20x", (unsigned)(unsigned char)cv.data[i]);
+}
+
+static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs)
+{
+	size_t min = lhs.size < rhs.size ? lhs.size : rhs.size;
+	int r = min > 0 ? memcmp(lhs.data, rhs.data, min) : 0;
+	return r != 0 ? r : (ptrdiff_t)lhs.size - (ptrdiff_t)rhs.size;
 }
 
 static inline bool str_ctor(struct str* str, size_t capacity)

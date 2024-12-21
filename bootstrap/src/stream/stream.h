@@ -8,9 +8,12 @@ struct stream
 {
 	FILE* stream;
 	bool eof;
+	bool eol;
 	int current;
 	size_t line;
 	size_t column;
+	size_t peek_line;
+	size_t peek_column;
 };
 
 bool stream_from_file(struct stream* stream, char const* filename);

@@ -13,6 +13,7 @@ LDFLAGS = -O$O
 
 SRC = ${wildcard src/*.c src/*/*.c}
 OBJ = ${SRC:%.c=${builddir}/%.o}
+DEP = ${OBJ:.o=.d}
 
 ifeq (${mode},debug)
 O = 0
