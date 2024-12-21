@@ -33,7 +33,7 @@ endif
 
 all: ${EXEC}
 
-obj: ${obj}
+obj: ${OBJ}
 
 bear: clean
 	mkdir -p ${builddir}
@@ -51,7 +51,7 @@ mrproper: clean
 .PHONY = all obj bear run clean mrproper
 
 ${EXEC}: ${OBJ}
-	${CC} -o $@ $< ${LDFLAGS}
+	${CC} -o $@ $^ ${LDFLAGS}
 
 ${builddir}/%.o: %.c
 	mkdir -p ${dir $@}
