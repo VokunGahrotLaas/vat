@@ -26,15 +26,16 @@ void token_dtor(struct token* token)
 {
 	switch (token->type)
 	{
-	case TOKEN_WORD: str_dtor(&token->val.str); break;
+	case TOKEN_ERROR: FALLTHROUGH;
 	case TOKEN_NEWLINE: FALLTHROUGH;
+	case TOKEN_EOF: FALLTHROUGH;
 	case TOKEN_SEMICOLUMN: FALLTHROUGH;
 	case TOKEN_LPAREN: FALLTHROUGH;
 	case TOKEN_RPAREN: FALLTHROUGH;
 	case TOKEN_PLUS: FALLTHROUGH;
 	case TOKEN_MINUS: FALLTHROUGH;
-	case TOKEN_NUM: FALLTHROUGH;
-	case TOKEN_EOF: break;
+	case TOKEN_NUM: break;
+	case TOKEN_WORD: str_dtor(&token->val.str); break;
 	};
 }
 
@@ -47,6 +48,7 @@ void token_print(struct token* token, FILE* stream)
 	}
 	switch (token->type)
 	{
+	case TOKEN_ERROR: fputs("<ERROR>", stream); break;
 	case TOKEN_EOF: fputs("<EOF>", stream); break;
 	case TOKEN_NEWLINE: fputs("<NEWLINE>", stream); break;
 	case TOKEN_SEMICOLUMN: fputc(';', stream); break;
@@ -63,6 +65,7 @@ void token_type_print(enum token_type type, FILE* stream)
 {
 	switch (type)
 	{
+	case TOKEN_ERROR: fputs("error", stream); break;
 	case TOKEN_EOF: fputs("EOF", stream); break;
 	case TOKEN_NEWLINE: fputs("newline", stream); break;
 	case TOKEN_SEMICOLUMN: fputc(';', stream); break;
@@ -80,7 +83,7 @@ void token_types_print(enum token_type type, FILE* stream)
 	bool first = true;
 	for (uint64_t u = TOKEN_MIN; u < TOKEN_MAX; u <<= 1)
 	{
-		if (type & ~u) continue;
+		if (!(type & u)) continue;
 		if (first)
 			first = false;
 		else

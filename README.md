@@ -14,12 +14,13 @@ See [Syntax](./README-Syntax.md)
 
 * bootstrap vatc in C
   * lexer
+  * parser
 
 ## Current tasks
 
 * bootstrap vatc in C
-  * syntax
-  * parser
+  * writing syntax
+  * implementing syntax
 
 ## TODO
 

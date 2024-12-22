@@ -17,6 +17,7 @@ static inline void lexer_lex_op(struct lexer* lexer);
 
 bool lexer_of_file(struct lexer* lexer, char const* filename)
 {
+	lexer->error = false;
 	lexer->state = LEXER_NONE;
 	token_of_type(&lexer->current, NULL, TOKEN_NONE);
 	return stream_from_file(&lexer->stream, filename);
@@ -119,9 +120,11 @@ static inline void lexer_lex(struct lexer* lexer)
 	else
 	{
 		struct loc loc = lexer_loc_ctor_peek(lexer);
+		lexer->error = true;
 		loc_print(&loc, stderr);
 		fprintf(stderr, ": invalid character found (%c)\n", (unsigned char)stream_peek(&lexer->stream));
-		exit(1);
+		stream_pop(&lexer->stream);
+		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
 	}
 }
 
@@ -172,10 +175,11 @@ static inline void lexer_lex_op(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_MINUS);
 	else
 	{
+		lexer->error = true;
 		loc_print(&loc, stderr);
 		fprintf(stderr, ": invalid operator found (%s)\n", v.data);
 		str_dtor(&v);
-		exit(1);
+		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
 	}
 	str_dtor(&v);
 }

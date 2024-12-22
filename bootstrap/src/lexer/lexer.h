@@ -15,6 +15,7 @@ struct lexer
 	struct stream stream;
 	struct token current;
 	enum lexer_state state;
+	bool error;
 };
 
 bool lexer_of_file(struct lexer* lexer, char const* filename);

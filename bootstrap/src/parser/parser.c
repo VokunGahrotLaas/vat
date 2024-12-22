@@ -29,10 +29,11 @@ static inline bool parser_peek_token(struct parser* parser, enum token_type type
 {
 	struct token token = lexer_peek(&parser->lexer);
 	if (token.type & type) return true;
+	if (token.type == TOKEN_ERROR) return false;
 	loc_print(&token.loc, stderr);
 	fputs(": invalid token ", stderr);
 	token_type_print(token.type, stderr);
-	fputs(", expected ", stderr);
+	fputs(", expected one of ", stderr);
 	token_types_print(type, stderr);
 	fputc('\n', stderr);
 	parser->error = true;

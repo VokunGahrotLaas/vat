@@ -9,22 +9,22 @@
 enum token_type
 {
 #define TOKEN_NONE ((enum token_type)0)
-#define TOKEN_MIN TOKEN_NEWLINE
+#define TOKEN_MIN TOKEN_ERROR
 	// value: none
-	TOKEN_NEWLINE = 1 << 0,
+	TOKEN_ERROR = 1 << 0,
+	TOKEN_NEWLINE = 1 << 1,
+	TOKEN_EOF = 1 << 2,
 	/// punct
-	TOKEN_SEMICOLUMN = 1 << 1,
-	TOKEN_LPAREN = 1 << 2,
-	TOKEN_RPAREN = 1 << 3,
-	TOKEN_PLUS = 1 << 4,
-	TOKEN_MINUS = 1 << 5,
-	/// other
-	TOKEN_EOF = 1 << 6,
+	TOKEN_SEMICOLUMN = 1 << 3,
+	TOKEN_LPAREN = 1 << 4,
+	TOKEN_RPAREN = 1 << 5,
+	TOKEN_PLUS = 1 << 6,
+	TOKEN_MINUS = 1 << 7,
 	// value: str
-	TOKEN_WORD = 1 << 7,
+	TOKEN_WORD = 1 << 8,
 	// value: u64
-	TOKEN_NUM = 1 << 8,
-#define TOKEN_MAX TOKEN_NUM
+	TOKEN_NUM = 1 << 9,
+#define TOKEN_MAX (TOKEN_NUM + 1)
 };
 
 struct token
