@@ -29,8 +29,8 @@ static inline bool parser_assert_token(struct parser* parser, enum token_type ty
 
 static inline bool parser_skip_inverse(struct parser* parser, enum token_type type)
 {
-	type |= EOF;
-	if ((lexer_peek(&parser->lexer).type & ~type) == 0) return false;
+	type |= TOKEN_EOF;
+	if (lexer_peek(&parser->lexer).type & type) return false;
 	struct token token = lexer_pop(&parser->lexer);
 	token_dtor(&token);
 	return true;
@@ -40,13 +40,13 @@ static inline struct ast* parser_parse_program(struct parser* parser)
 {
 	struct token token = lexer_peek(&parser->lexer);
 	struct ast* ast = ast_init(AST_SEQ, &token.loc);
+	list_ctor(&ast->value.seq.list, &vlist_past, 16);
 	while (lexer_peek(&parser->lexer).type != TOKEN_EOF)
 	{
 		struct ast* statements = parser_parse_statements(parser);
 		if (!statements)
 			while (parser_skip_inverse(parser, TOKEN_NEWLINE)) {}
-		else if (parser_assert_token(parser, TOKEN_NEWLINE | TOKEN_EOF))
-			seq_push(ast, statements);
+		if (parser_assert_token(parser, TOKEN_NEWLINE | TOKEN_EOF) && statements) seq_push(ast, statements);
 	}
 	parser_assert_token(parser, TOKEN_EOF);
 	// ast->loc = LOC(ast->loc, token.loc);
