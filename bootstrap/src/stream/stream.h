@@ -10,7 +10,6 @@ struct stream
 {
 	FILE* stream;
 	char const* filename;
-	bool eof;
 	bool eol;
 	int current;
 	struct pos pos;

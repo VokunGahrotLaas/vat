@@ -17,7 +17,7 @@ struct lexer
 	enum lexer_state state;
 };
 
-bool lexer_from_file(struct lexer* lexer, char const* filename);
+bool lexer_of_file(struct lexer* lexer, char const* filename);
 void lexer_dtor(struct lexer* lexer);
 struct token lexer_peek(struct lexer* lexer);
 struct token lexer_pop(struct lexer* lexer);

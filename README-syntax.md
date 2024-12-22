@@ -19,17 +19,22 @@ _DIGIT = ? /[0-9]/ ?;
 
 _LETTER = ? /[a-zA-Z0-9_]/ ?;
 
+empty = ? empty ?;
+
 (* input rules *)
 
 parse_statement =
   statements NEWLINE
 | statements EOF;
 
-parse_program = ( statements [ NEWLINE ] ) + EOF;
+parse_program = { statements NEWLINE } statements EOF;
 
 (* other rules *)
 
-statements = ( statement ) +;
+statements =
+  empty
+| ( statement ) +
+;
 
 statement = exp ";";
 

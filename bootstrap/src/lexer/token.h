@@ -6,24 +6,24 @@
 #include "stream/location.h"
 #include "utils/str.h"
 
-#define TOKEN_NONE ((enum token_type)0)
-
 enum token_type
 {
+#define TOKEN_NONE ((enum token_type)0)
 	// value: none
-	TOKEN_NEWLINE = 1,
+	TOKEN_NEWLINE = 1 << 0,
 	/// punct
-	TOKEN_SEMICOLUMN,
-	TOKEN_LPAREN,
-	TOKEN_RPAREN,
-	TOKEN_PLUS,
-	TOKEN_MINUS,
+	TOKEN_SEMICOLUMN = 1 << 1,
+	TOKEN_LPAREN = 1 << 2,
+	TOKEN_RPAREN = 1 << 3,
+	TOKEN_PLUS = 1 << 4,
+	TOKEN_MINUS = 1 << 5,
 	/// other
-	TOKEN_EOF,
+	TOKEN_EOF = 1 << 6,
 	// value: str
-	TOKEN_WORD,
+	TOKEN_WORD = 1 << 7,
 	// value: u64
-	TOKEN_NUM,
+	TOKEN_NUM = 1 << 8,
+#define TOKEN_MAX TOKEN_NUM
 };
 
 struct token

@@ -13,6 +13,14 @@
 		.last_line = 0,                                                                                                \
 		.last_column = 0,                                                                                              \
 	})
+#define LOC(From, To)                                                                                                  \
+	((struct loc){                                                                                                     \
+		.filename = (From).filename,                                                                                   \
+		.first_line = (From).first_line,                                                                               \
+		.first_column = (From).first_column,                                                                           \
+		.last_line = (To).last_line,                                                                                   \
+		.last_column = (To).last_column,                                                                               \
+	})
 
 struct pos
 {

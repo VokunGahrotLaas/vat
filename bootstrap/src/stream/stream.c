@@ -4,7 +4,6 @@ bool stream_from_file(struct stream* stream, char const* filename)
 {
 	stream->stream = fopen(filename, "r");
 	stream->filename = filename;
-	stream->eof = false;
 	stream->eol = true;
 	stream->current = EOF;
 	stream->pos = (struct pos){
@@ -28,7 +27,7 @@ void stream_dtor(struct stream* stream)
 
 int stream_peek(struct stream* stream)
 {
-	if (stream->eof || stream->current != EOF) return stream->current;
+	if (stream->stream == NULL || stream->current != EOF) return stream->current;
 	stream->current = fgetc(stream->stream);
 	if (stream->eol)
 	{
@@ -41,7 +40,10 @@ int stream_peek(struct stream* stream)
 	if (stream->current == '\n')
 		stream->eol = true;
 	else if (stream->current == EOF)
-		stream->eof = true;
+	{
+		fclose(stream->stream);
+		stream->stream = NULL;
+	}
 	return stream->current;
 }
 

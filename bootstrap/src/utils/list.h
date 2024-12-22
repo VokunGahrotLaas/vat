@@ -47,6 +47,9 @@ bool list_push_move(struct list* list, void* data);
 static inline void* list_get(struct list* list, size_t idx);
 static inline void const* list_getc(struct list const* list, size_t idx);
 
+bool copy_fail(UNUSED void* ptr, UNUSED void const* other);
+bool move_fail(UNUSED void* ptr, UNUSED void* other);
+
 // impl
 
 VLIST(struct list, vlist_list, &list_dtor, &list_copy, &list_move);

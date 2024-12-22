@@ -31,15 +31,6 @@ void ast_pdtor(struct ast** ast)
 	*ast = NULL;
 }
 
-void unary_print(enum unary_type type, FILE* stream)
-{
-	switch (type)
-	{
-	case UNARY_PLUS: fputc('+', stream); break;
-	case UNARY_MINUS: fputc('-', stream); break;
-	};
-}
-
 void ast_print(struct ast* ast, FILE* stream)
 {
 	if (!ast)
@@ -64,4 +55,27 @@ void ast_print(struct ast* ast, FILE* stream)
 		break;
 	}
 	};
+}
+
+void unary_print(enum unary_type type, FILE* stream)
+{
+	switch (type)
+	{
+	case UNARY_PLUS: fputc('+', stream); break;
+	case UNARY_MINUS: fputc('-', stream); break;
+	};
+}
+
+bool seq_push(struct ast* seq, struct ast* ast)
+{
+	if (ast->type != AST_SEQ) return list_push_move(&seq->value.seq.list, &ast);
+	struct list* dest = &seq->value.seq.list;
+	struct list* src = &ast->value.seq.list;
+	if (!list_reserve(dest, dest->size + src->size)) return false;
+	for (size_t i = 0; i < src->size; ++i)
+		if (!list_push_move(dest, list_get(src, i))) return false;
+	src->data = src->vlist->empty_impl;
+	src->capacity = src->size = 0;
+	ast_free(ast);
+	return true;
 }

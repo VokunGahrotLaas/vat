@@ -15,7 +15,7 @@ static inline void lexer_lex_num(struct lexer* lexer);
 static inline void lexer_lex_word(struct lexer* lexer);
 static inline void lexer_lex_op(struct lexer* lexer);
 
-bool lexer_from_file(struct lexer* lexer, char const* filename)
+bool lexer_of_file(struct lexer* lexer, char const* filename)
 {
 	lexer->state = LEXER_NONE;
 	token_of_type(&lexer->current, NULL, TOKEN_NONE);
