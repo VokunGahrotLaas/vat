@@ -3,13 +3,20 @@
 bool stream_from_file(struct stream* stream, char const* filename)
 {
 	stream->stream = fopen(filename, "r");
+	stream->filename = filename;
 	stream->eof = false;
 	stream->eol = true;
 	stream->current = EOF;
-	stream->line = 0;
-	stream->column = 0;
-	stream->peek_line = 0;
-	stream->peek_column = 0;
+	stream->pos = (struct pos){
+		.filename = filename,
+		.line = 0,
+		.column = 0,
+	};
+	stream->peek_pos = (struct pos){
+		.filename = filename,
+		.line = 0,
+		.column = 0,
+	};
 	return stream->stream != NULL;
 }
 
@@ -25,12 +32,12 @@ int stream_peek(struct stream* stream)
 	stream->current = fgetc(stream->stream);
 	if (stream->eol)
 	{
-		++stream->peek_line;
-		stream->peek_column = 1;
+		++stream->peek_pos.line;
+		stream->peek_pos.column = 1;
 		stream->eol = false;
 	}
 	else
-		++stream->peek_column;
+		++stream->peek_pos.column;
 	if (stream->current == '\n')
 		stream->eol = true;
 	else if (stream->current == EOF)
@@ -41,8 +48,7 @@ int stream_peek(struct stream* stream)
 int stream_pop(struct stream* stream)
 {
 	int current = stream_peek(stream);
-	stream->line = stream->peek_line;
-	stream->column = stream->peek_column;
+	stream->pos = stream->peek_pos;
 	stream->current = EOF;
 	return current;
 }

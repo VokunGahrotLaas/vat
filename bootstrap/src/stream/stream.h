@@ -3,17 +3,18 @@
 // libc
 #include <stdbool.h>
 #include <stdio.h>
+// bootstrap
+#include "stream/location.h"
 
 struct stream
 {
 	FILE* stream;
+	char const* filename;
 	bool eof;
 	bool eol;
 	int current;
-	size_t line;
-	size_t column;
-	size_t peek_line;
-	size_t peek_column;
+	struct pos pos;
+	struct pos peek_pos;
 };
 
 bool stream_from_file(struct stream* stream, char const* filename);

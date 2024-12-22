@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 	{
 		if (lexer_peek(&lexer).type == TOKEN_EOF) eof = true;
 		struct token token = lexer_pop(&lexer);
-		location_print(&token.loc, stdout);
+		loc_print(&token.loc, stdout);
 		fputs(": ", stdout);
 		token_print(&token, stdout);
 		fputc('\n', stdout);

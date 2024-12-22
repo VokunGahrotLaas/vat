@@ -3,18 +3,10 @@
 // libc
 #include <stdio.h>
 // bootstrap
+#include "stream/location.h"
 #include "utils/str.h"
 
 #define TOKEN_NONE ((enum token_type)0)
-
-struct location
-{
-	char const* filename;
-	size_t first_line;
-	size_t first_column;
-	size_t last_line;
-	size_t last_column;
-};
 
 enum token_type
 {
@@ -36,7 +28,7 @@ enum token_type
 
 struct token
 {
-	struct location loc;
+	struct loc loc;
 	enum token_type type;
 	union token_value
 	{
@@ -45,10 +37,8 @@ struct token
 	} val;
 };
 
-void location_print(struct location const* loc, FILE* stream);
-
-bool token_of_type(struct token* token, struct location const* loc, enum token_type type);
-bool token_ctor_word(struct token* token, struct location const* loc, struct str* str);
-bool token_ctor_num(struct token* token, struct location const* loc, uint64_t u64);
+bool token_of_type(struct token* token, struct loc const* loc, enum token_type type);
+bool token_ctor_word(struct token* token, struct loc const* loc, struct str* str);
+bool token_ctor_num(struct token* token, struct loc const* loc, uint64_t u64);
 void token_dtor(struct token* token);
 void token_print(struct token* token, FILE* stream);

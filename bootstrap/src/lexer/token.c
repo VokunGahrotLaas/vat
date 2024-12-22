@@ -1,39 +1,21 @@
 #include "lexer/token.h"
 
-void location_print(struct location const* loc, FILE* stream)
+bool token_of_type(struct token* token, struct loc const* loc, enum token_type type)
 {
-	fprintf(stream, "%s:", loc->filename);
-	if (loc->first_line != loc->last_line)
-		fprintf(stream, "%zu:%zu-%zu:%zu", loc->first_line, loc->first_column, loc->last_line, loc->last_column);
-	else if (loc->first_column == loc->last_column)
-		fprintf(stream, "%zu:%zu", loc->first_line, loc->first_column);
-	else
-		fprintf(stream, "%zu:%zu-%zu", loc->first_line, loc->first_column, loc->last_column);
-}
-
-bool token_of_type(struct token* token, struct location const* loc, enum token_type type)
-{
-	token->loc = (struct location){
-		.filename = "not-a-file",
-		.first_line = 0,
-		.first_column = 0,
-		.last_line = 0,
-		.last_column = 0,
-	};
-	if (loc) token->loc = *loc;
+	token->loc = loc ? *loc : LOC_INVALID;
 	token->type = type;
 	str_ctor(&token->val.str, 0);
 	return true;
 }
 
-bool token_ctor_word(struct token* token, struct location const* loc, struct str* str)
+bool token_ctor_word(struct token* token, struct loc const* loc, struct str* str)
 {
 	if (!token_of_type(token, loc, TOKEN_WORD)) return false;
 	token->val.str = *str;
 	return true;
 }
 
-bool token_ctor_num(struct token* token, struct location const* loc, uint64_t u64)
+bool token_ctor_num(struct token* token, struct loc const* loc, uint64_t u64)
 {
 	if (!token_of_type(token, loc, TOKEN_NUM)) return false;
 	token->val.u64 = u64;

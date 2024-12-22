@@ -12,7 +12,6 @@ enum lexer_state
 
 struct lexer
 {
-	char const* filename;
 	struct stream stream;
 	struct token current;
 	enum lexer_state state;
