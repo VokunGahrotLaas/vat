@@ -11,7 +11,7 @@
 #define CV_EMPTY                                                                                                       \
 	(struct cv) { .data = NULL, .size = 0, }
 
-static char str_empty_impl[1];
+extern char str_empty_impl[1];
 
 struct cv
 {
@@ -26,7 +26,7 @@ struct str
 	size_t capacity;
 };
 
-static inline struct cv cv_str(struct str* str);
+static inline struct cv cv_str(struct str const* str);
 static inline struct cv cv_cstr(char const* cstr);
 static inline struct cv cv_sub(struct cv cv, size_t offset, size_t size);
 static inline void cv_print(struct cv cv, FILE* stream);
@@ -41,11 +41,12 @@ static inline bool str_resize(struct str* str, size_t size);
 static inline bool str_pushcv(struct str* str, struct cv cv);
 static inline bool str_pushc(struct str* str, char c);
 
+bool str_copy(struct str* str, struct str const* other);
+bool str_move(struct str* str, struct str* other);
+
 // impl
 
-static char str_empty_impl[1] = "";
-
-static inline struct cv cv_str(struct str* str)
+static inline struct cv cv_str(struct str const* str)
 {
 	return (struct cv){
 		.data = str->data,

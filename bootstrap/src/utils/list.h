@@ -13,7 +13,11 @@
 		.move = (move_t*)(Move),                                                                                       \
 	}
 #define LIST_GET(List, Type, Idx) ((Type*)list_get((List), (Idx)))
-#define LIST_GETC(List, Type, Idx) ((Type*)list_getc((List), (Idx)))
+#define LIST_GETC(List, Type, Idx) ((Type const*)list_getc((List), (Idx)))
+#define LIST_FRONT(List, Type) ((Type*)list_front((List)))
+#define LIST_FRONTC(List, Type) ((Type const*)list_frontc((List)))
+#define LIST_BACK(List, Type) ((Type*)list_back((List)))
+#define LIST_BACKC(List, Type) ((Type const*)list_backc((List)))
 
 typedef void dtor_t(void* ptr);
 typedef bool copy_t(void* ptr, void const* other);
@@ -47,6 +51,12 @@ bool list_push_move(struct list* list, void* data);
 static inline void* list_get(struct list* list, size_t idx);
 static inline void const* list_getc(struct list const* list, size_t idx);
 
+static inline void* list_front(struct list* list);
+static inline void const* list_frontc(struct list const* list);
+
+static inline void* list_back(struct list* list);
+static inline void const* list_backc(struct list const* list);
+
 bool copy_fail(UNUSED void* ptr, UNUSED void const* other);
 bool move_fail(UNUSED void* ptr, UNUSED void* other);
 
@@ -65,4 +75,28 @@ static inline void const* list_getc(struct list const* list, size_t idx)
 {
 	uint8_t const* data = list->data;
 	return data + list->vlist->elem_size * idx;
+}
+
+static inline void* list_front(struct list* list)
+{
+	DBG_ASSERT(list->size > 0 && "list_front: list must not be empty");
+	return list_get(list, 0);
+}
+
+static inline void const* list_frontc(struct list const* list)
+{
+	DBG_ASSERT(list->size > 0 && "list_frontc: list must not be empty");
+	return list_getc(list, 0);
+}
+
+static inline void* list_back(struct list* list)
+{
+	DBG_ASSERT(list->size > 0 && "list_back: list must not be empty");
+	return list_get(list, list->size - 1);
+}
+
+static inline void const* list_backc(struct list const* list)
+{
+	DBG_ASSERT(list->size > 0 && "list_backc: list must not be empty");
+	return list_getc(list, list->size - 1);
 }

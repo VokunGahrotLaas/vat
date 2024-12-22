@@ -40,11 +40,9 @@ statement = exp ";";
 
 exp =
   number
+| word
 | ops
-| lexp
 ;
-
-lexp = word;
 
 ops =
   "(" exp ")"

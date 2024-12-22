@@ -58,3 +58,33 @@ void token_print(struct token* token, FILE* stream)
 	case TOKEN_NUM: fprintf(stream, "%" PRIu64, token->val.u64); break;
 	};
 }
+
+void token_type_print(enum token_type type, FILE* stream)
+{
+	switch (type)
+	{
+	case TOKEN_EOF: fputs("EOF", stream); break;
+	case TOKEN_NEWLINE: fputs("newline", stream); break;
+	case TOKEN_SEMICOLUMN: fputc(';', stream); break;
+	case TOKEN_LPAREN: fputc('(', stream); break;
+	case TOKEN_RPAREN: fputc(')', stream); break;
+	case TOKEN_PLUS: fputc('+', stream); break;
+	case TOKEN_MINUS: fputc('-', stream); break;
+	case TOKEN_WORD: fputs("word", stream); break;
+	case TOKEN_NUM: fputs("number", stream); break;
+	};
+}
+
+void token_types_print(enum token_type type, FILE* stream)
+{
+	bool first = true;
+	for (uint64_t u = TOKEN_MIN; u < TOKEN_MAX; u <<= 1)
+	{
+		if (type & ~u) continue;
+		if (first)
+			first = false;
+		else
+			fputs(", ", stream);
+		token_type_print(u, stream);
+	}
+}

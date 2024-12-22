@@ -3,10 +3,13 @@
 // bootstrap
 #include "stream/location.h"
 #include "utils/list.h"
+#include "utils/str.h"
 
 enum ast_type
 {
+	AST_ERROR,
 	AST_NUMBER,
+	AST_WORD,
 	AST_UNARY,
 	AST_SEQ,
 };
@@ -14,6 +17,11 @@ enum ast_type
 struct ast_number
 {
 	uint64_t u64;
+};
+
+struct ast_word
+{
+	struct str str;
 };
 
 enum unary_type
@@ -40,6 +48,7 @@ struct ast
 	union ast_value
 	{
 		struct ast_number number;
+		struct ast_word word;
 		struct ast_unary unary;
 		struct ast_seq seq;
 	} value;

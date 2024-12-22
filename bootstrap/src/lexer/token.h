@@ -9,6 +9,7 @@
 enum token_type
 {
 #define TOKEN_NONE ((enum token_type)0)
+#define TOKEN_MIN TOKEN_NEWLINE
 	// value: none
 	TOKEN_NEWLINE = 1 << 0,
 	/// punct
@@ -42,3 +43,5 @@ bool token_ctor_word(struct token* token, struct loc const* loc, struct str* str
 bool token_ctor_num(struct token* token, struct loc const* loc, uint64_t u64);
 void token_dtor(struct token* token);
 void token_print(struct token* token, FILE* stream);
+void token_type_print(enum token_type type, FILE* stream);
+void token_types_print(enum token_type type, FILE* stream);
