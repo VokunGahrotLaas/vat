@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 		{ "output",		required_argument, NULL, 'o' },
 		{ NULL,			0,				   NULL, 0   },
 	};
-	char const* s_opt = "tco:";
+	char const* s_opt = "tcATho:";
 	int c_opt = -1;
 	while ((c_opt = getopt_long(argc, argv, s_opt, l_opt, NULL)) != -1)
 	{
@@ -116,10 +116,10 @@ int main(int argc, char** argv)
 	if (state != MAIN_HELP && optind + 1 != argc && state != MAIN_ERROR)
 	{
 		state = MAIN_ERROR;
-		if (optind + 1 < argc)
+		if (optind == argc)
 			warnx("missing source file");
 		else
-			warnx("too many source files");
+			warnx("too many source files (%i)", argc - optind - 1);
 	}
 	if (!(state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_TRANSPILE) && output && state != MAIN_ERROR)
 	{
@@ -158,11 +158,15 @@ int main(int argc, char** argv)
 
 int main_help(char const* name, FILE* stream, int r)
 {
-	fprintf(stream, "USAGE: %s [OPTIONS] <filename.vat>\n", name);
+	fprintf(stream, "USAGE: %s [OPTIONS] <source-file.vat>\n", name);
 	fprintf(stream, "\n");
 	fprintf(stream, "OPTIONS:\n");
 	fprintf(stream, "  -o/--output <file>: specify output file\n");
-	fprintf(stream, "  -h/--help: prints this message\n");
+	fprintf(stream, "  -c/--compile: compile source to executable with cc (default)\n");
+	fprintf(stream, "  -t/--transpile: transpile source to C\n");
+	fprintf(stream, "  -T/--print-tokens: print all the tokens from the source\n");
+	fprintf(stream, "  -T/--print-ast: print the AST from the source (displayed as source code)\n");
+	fprintf(stream, "  -h/--help: print this message\n");
 	return r;
 }
 
