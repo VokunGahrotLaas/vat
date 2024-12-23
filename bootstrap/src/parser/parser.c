@@ -3,14 +3,16 @@
 #define PARSER_FIRST_PROGRAM (PARSER_FIRST_STATEMENTS)
 #define PARSER_FIRST_STATEMENTS (PARSER_FIRST_STATEMENT)
 #define PARSER_FIRST_STATEMENT (PARSER_FIRST_EXP | PARSER_FIRST_ASSIGN)
-#define PARSER_FIRST_EXP (PARSER_FIRST_NUMBER | PARSER_FIRST_VAR | PARSER_FIRST_OPS)
-#define PARSER_FIRST_NUMBER (TOKEN_NUM)
+#define PARSER_FIRST_EXP                                                                                               \
+	(PARSER_FIRST_NUMLIT | PARSER_FIRST_STRLIT | PARSER_FIRST_VAR | PARSER_FIRST_OPS | PARSER_FIRST_CALL)
+#define PARSER_FIRST_NUMLIT (TOKEN_NUMLIT)
+#define PARSER_FIRST_STRLIT (TOKEN_STRLIT)
 #define PARSER_FIRST_VAR (TOKEN_WORD)
 #define PARSER_FIRST_OPS (TOKEN_LPAREN | TOKEN_PLUS | TOKEN_MINUS)
-
 #define PARSER_FIRST_LEXP (PARSER_FIRST_VAR)
 #define PARSER_FIRST_TEXP (PARSER_FIRST_VAR)
 #define PARSER_FIRST_ASSIGN (TOKEN_LET)
+#define PARSER_FIRST_CALL (PARSER_FIRST_LEXP)
 
 static inline enum token_type parser_peek_token(struct parser* parser, enum token_type type);
 static inline enum token_type parser_pop_token(struct parser* parser, enum token_type type);
@@ -20,13 +22,14 @@ static inline struct ast* parser_parse_program(struct parser* parser);
 static inline struct ast* parser_parse_statements(struct parser* parser);
 static inline struct ast* parser_parse_statement(struct parser* parser);
 static inline struct ast* parser_parse_exp(struct parser* parser);
-static inline struct ast* parser_parse_number(struct parser* parser);
+static inline struct ast* parser_parse_numlit(struct parser* parser);
+static inline struct ast* parser_parse_strlit(struct parser* parser);
 static inline struct ast* parser_parse_var(struct parser* parser);
 static inline struct ast* parser_parse_ops(struct parser* parser);
-
 static inline struct ast* parser_parse_lexp(struct parser* parser);
 static inline struct ast* parser_parse_texp(struct parser* parser);
 static inline struct ast* parser_parse_assign(struct parser* parser);
+static inline struct ast* parser_parse_call(struct parser* parser, struct ast* lexp);
 
 bool parser_of_file(struct parser* parser, char const* filename) { return lexer_of_file(&parser->lexer, filename); }
 
@@ -121,28 +124,47 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 
 static inline struct ast* parser_parse_exp(struct parser* parser)
 {
-	DBG_ASSERT((PARSER_FIRST_NUMBER | PARSER_FIRST_VAR | PARSER_FIRST_OPS) == PARSER_FIRST_EXP
+	DBG_ASSERT((PARSER_FIRST_NUMLIT | PARSER_FIRST_STRLIT | PARSER_FIRST_VAR | PARSER_FIRST_OPS | PARSER_FIRST_CALL)
+				   == PARSER_FIRST_EXP
 			   && "parser_parse_exp: missing case in parser");
-	DBG_ASSERT((PARSER_FIRST_NUMBER & PARSER_FIRST_VAR) == 0 && "parser_parse_exp: invalid case in parser");
-	DBG_ASSERT((PARSER_FIRST_NUMBER & PARSER_FIRST_OPS) == 0 && "parser_parse_exp: invalid case in parser");
+	DBG_ASSERT((PARSER_FIRST_NUMLIT & PARSER_FIRST_VAR) == 0 && "parser_parse_exp: invalid case in parser");
+	DBG_ASSERT((PARSER_FIRST_NUMLIT & PARSER_FIRST_OPS) == 0 && "parser_parse_exp: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_VAR & PARSER_FIRST_OPS) == 0 && "parser_parse_exp: invalid case in parser");
+	DBG_ASSERT(PARSER_FIRST_CALL == PARSER_FIRST_VAR && "parser_parse_exp: invalid case in parser");
 	struct token token = lexer_peek(&parser->lexer);
 	if (!parser_peek_token(parser, PARSER_FIRST_EXP)) return ast_init(AST_ERROR, &token.loc);
-	if (token.type & PARSER_FIRST_NUMBER) return parser_parse_number(parser);
-	if (token.type & PARSER_FIRST_VAR) return parser_parse_var(parser);
+	if (token.type & PARSER_FIRST_NUMLIT) return parser_parse_numlit(parser);
+	if (token.type & PARSER_FIRST_STRLIT) return parser_parse_strlit(parser);
 	if (token.type & PARSER_FIRST_OPS) return parser_parse_ops(parser);
+	if (token.type & PARSER_FIRST_VAR)
+	{
+		struct ast* var = parser_parse_var(parser);
+		if (lexer_peek(&parser->lexer).type != TOKEN_LPAREN) return var;
+		return parser_parse_call(parser, var);
+	}
 	UNREACHABLE();
 }
 
-static inline struct ast* parser_parse_number(struct parser* parser)
+static inline struct ast* parser_parse_numlit(struct parser* parser)
 {
 	struct token token = lexer_peek(&parser->lexer);
-	if (!parser_peek_token(parser, TOKEN_NUM)) return ast_init(AST_ERROR, &token.loc);
+	if (!parser_peek_token(parser, TOKEN_NUMLIT)) return ast_init(AST_ERROR, &token.loc);
 	lexer_pop(&parser->lexer);
-	struct ast* number = ast_init(AST_NUMBER, &token.loc);
-	number->value.number.u64 = token.val.u64;
+	struct ast* number = ast_init(AST_NUMLIT, &token.loc);
+	number->value.numlit.u64 = token.val.u64;
 	token_dtor(&token);
 	return number;
+}
+
+static inline struct ast* parser_parse_strlit(struct parser* parser)
+{
+	struct token token = lexer_peek(&parser->lexer);
+	if (!parser_peek_token(parser, TOKEN_STRLIT)) return ast_init(AST_ERROR, &token.loc);
+	lexer_pop(&parser->lexer);
+	struct ast* word = ast_init(AST_STRLIT, &token.loc);
+	str_move(&word->value.strlit.str, &token.val.str);
+	token_dtor(&token);
+	return word;
 }
 
 static inline struct ast* parser_parse_var(struct parser* parser)
@@ -213,4 +235,30 @@ static inline struct ast* parser_parse_assign(struct parser* parser)
 	assign->value.assign.lexp = lexp;
 	assign->value.assign.exp = exp;
 	return assign;
+}
+
+static inline struct ast* parser_parse_call(struct parser* parser, struct ast* lexp)
+{
+	if (!lexp)
+	{
+		lexp = parser_parse_lexp(parser);
+		parser_pop_token(parser, TOKEN_LPAREN);
+	}
+	struct loc loc = lexp->loc;
+	parser_pop_token(parser, TOKEN_LPAREN);
+	struct list args;
+	list_ctor(&args, &vlist_past, 16);
+	while (lexer_peek(&parser->lexer).type & ~(TOKEN_RPAREN | TOKEN_EOF))
+	{
+		struct ast* exp = parser_parse_exp(parser);
+		loc = LOC(loc, exp->loc);
+		list_push_move(&args, &exp);
+		if (lexer_peek(&parser->lexer).type != TOKEN_COMA) break;
+		lexer_pop(&parser->lexer);
+	}
+	parser_pop_token(parser, TOKEN_RPAREN);
+	struct ast* call = ast_init(AST_CALL, &loc);
+	call->value.call.fun = lexp;
+	list_move(&call->value.call.args, &args);
+	return call;
 }

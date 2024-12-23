@@ -22,13 +22,15 @@ enum token_type
 	TOKEN_MINUS = 1 << 7,
 	TOKEN_EQUAL = 1 << 8,
 	TOKEN_COLON = 1 << 9,
+	TOKEN_COMA = 1 << 10,
 	// words
-	TOKEN_LET = 1 << 10,
+	TOKEN_LET = 1 << 11,
 	// value: str
-	TOKEN_WORD = 1 << 11,
+	TOKEN_WORD = 1 << 12,
+	TOKEN_STRLIT = 1 << 13,
 	// value: u64
-	TOKEN_NUM = 1 << 12,
-#define TOKEN_MAX (TOKEN_NUM + 1)
+	TOKEN_NUMLIT = 1 << 14,
+#define TOKEN_MAX (TOKEN_NUMLIT + 1)
 };
 
 struct token
@@ -44,7 +46,8 @@ struct token
 
 bool token_of_type(struct token* token, struct loc const* loc, enum token_type type);
 bool token_ctor_word(struct token* token, struct loc const* loc, struct str* str);
-bool token_ctor_num(struct token* token, struct loc const* loc, uint64_t u64);
+bool token_ctor_strlit(struct token* token, struct loc const* loc, struct str* str);
+bool token_ctor_numlit(struct token* token, struct loc const* loc, uint64_t u64);
 void token_dtor(struct token* token);
 void token_print(struct token* token, FILE* stream);
 void token_type_print(enum token_type type, FILE* stream);

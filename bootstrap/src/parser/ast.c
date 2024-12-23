@@ -21,9 +21,14 @@ void ast_free(struct ast* ast)
 	switch (ast->type)
 	{
 	case AST_ERROR: break;
-	case AST_NUMBER: break;
+	case AST_NUMLIT: break;
+	case AST_STRLIT: str_dtor(&ast->value.word.str); break;
 	case AST_WORD: str_dtor(&ast->value.word.str); break;
 	case AST_UNARY: ast_free(ast->value.unary.rhs); break;
+	case AST_CALL:
+		ast_free(ast->value.call.fun);
+		list_dtor(&ast->value.call.args);
+		break;
 	case AST_SEQ: list_dtor(&ast->value.seq.list); break;
 	case AST_ASSIGN: {
 		struct ast_assign* assign = &ast->value.assign;
@@ -98,8 +103,24 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		loc_print(&ast->loc, stream);
 		fputc(')', stream);
 		break;
-	case AST_NUMBER: fprintf(stream, "%" PRIu64, ast->value.number.u64); break;
+	case AST_NUMLIT: fprintf(stream, "%" PRIu64, ast->value.numlit.u64); break;
+	case AST_STRLIT:
+		fputc('"', stream);
+		cv_print(cv_str(&ast->value.strlit.str), stream);
+		fputc('"', stream);
+		break;
 	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
+	case AST_CALL:
+		ast_print(ast->value.call.fun, stream);
+		fputc('(', stream);
+		struct list* args = &ast->value.call.args;
+		for (size_t i = 0; i < args->size; ++i)
+		{
+			if (i != 0) fputs(", ", stream);
+			ast_print_impl(*LIST_GET(args, struct ast*, i), stream, indent);
+		}
+		fputc(')', stream);
+		break;
 	case AST_UNARY:
 		unary_print(ast->value.unary.op, stream);
 		ast_print(ast->value.unary.rhs, stream);

@@ -1,0 +1,2 @@
+let x: int = 30;
+printf("%i", x);

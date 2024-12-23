@@ -77,7 +77,7 @@ static inline void cv_print(struct cv cv, FILE* stream)
 		if (isprint(cv.data[i]))
 			fputc(cv.data[i], stream);
 		else
-			fprintf(stream, "\\x%20x", (unsigned)(unsigned char)cv.data[i]);
+			fprintf(stream, "\\x%02x", (unsigned)(unsigned char)cv.data[i]);
 }
 
 static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs)

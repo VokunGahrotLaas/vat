@@ -11,9 +11,10 @@ static inline bool is_letter(int c);
 static inline bool is_op(int c);
 
 static inline void lexer_lex(struct lexer* lexer);
-static inline void lexer_lex_num(struct lexer* lexer);
+static inline void lexer_lex_numlit(struct lexer* lexer);
 static inline void lexer_lex_word(struct lexer* lexer);
 static inline void lexer_lex_op(struct lexer* lexer);
+static inline void lexer_lex_strlit(struct lexer* lexer);
 
 bool lexer_of_file(struct lexer* lexer, char const* filename)
 {
@@ -91,7 +92,8 @@ static inline bool is_op(int c)
 	case '+': FALLTHROUGH;
 	case '-': FALLTHROUGH;
 	case '=': FALLTHROUGH;
-	case ':': return true;
+	case ':': FALLTHROUGH;
+	case ',': return true;
 	default: return false;
 	};
 }
@@ -114,11 +116,13 @@ static inline void lexer_lex(struct lexer* lexer)
 		lexer->state = LEXER_EOF;
 	}
 	else if (isdigit(stream_peek(&lexer->stream)))
-		lexer_lex_num(lexer);
+		lexer_lex_numlit(lexer);
 	else if (is_letter(stream_peek(&lexer->stream)))
 		lexer_lex_word(lexer);
 	else if (is_op(stream_peek(&lexer->stream)))
 		lexer_lex_op(lexer);
+	else if (stream_peek(&lexer->stream) == '"')
+		lexer_lex_strlit(lexer);
 	else
 	{
 		struct loc loc = lexer_loc_ctor_peek(lexer);
@@ -130,7 +134,7 @@ static inline void lexer_lex(struct lexer* lexer)
 	}
 }
 
-static inline void lexer_lex_num(struct lexer* lexer)
+static inline void lexer_lex_numlit(struct lexer* lexer)
 {
 	struct loc loc = lexer_loc_ctor_peek(lexer);
 	uint64_t v = 0;
@@ -141,7 +145,7 @@ static inline void lexer_lex_num(struct lexer* lexer)
 		v += c - '0';
 	}
 	lexer_loc_end(lexer, &loc);
-	token_ctor_num(&lexer->current, &loc, v);
+	token_ctor_numlit(&lexer->current, &loc, v);
 }
 
 static inline void lexer_lex_word(struct lexer* lexer)
@@ -186,6 +190,8 @@ static inline void lexer_lex_op(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_EQUAL);
 	else if (cv_cmp(cv_str(&v), cv_cstr(":")) == 0)
 		token_of_type(&lexer->current, &loc, TOKEN_COLON);
+	else if (cv_cmp(cv_str(&v), cv_cstr(",")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_COMA);
 	else
 	{
 		lexer->error = true;
@@ -195,4 +201,53 @@ static inline void lexer_lex_op(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
 	}
 	str_dtor(&v);
+}
+
+static inline void lexer_lex_strlit(struct lexer* lexer)
+{
+	struct loc loc = lexer_loc_ctor_peek(lexer);
+	if (stream_peek(&lexer->stream) != '"')
+	{
+		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
+		return;
+	}
+	stream_pop(&lexer->stream);
+	struct str v;
+	str_ctor(&v, 16);
+	bool escaped = false;
+	while (escaped || stream_peek(&lexer->stream) != '"')
+	{
+		char c = stream_pop(&lexer->stream);
+		if (escaped)
+		{
+			if (c == '\\' || c == '"')
+				str_pushc(&v, c);
+			else if (c == 'n')
+				str_pushc(&v, '\n');
+			else if (c == 't')
+				str_pushc(&v, '\t');
+			else
+			{
+				lexer->error = true;
+				loc_print(&loc, stderr);
+				fprintf(stderr, ": invalid escaped character in string litteral (0x%02x)\n", (uint8_t)c);
+			}
+			escaped = false;
+		}
+		else
+		{
+			if (c == '\\')
+				escaped = true;
+			else
+				str_pushc(&v, c);
+		}
+	}
+	if (stream_peek(&lexer->stream) != '"')
+	{
+		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
+		return;
+	}
+	stream_pop(&lexer->stream);
+	lexer_loc_end(lexer, &loc);
+	token_ctor_strlit(&lexer->current, &loc, &v);
 }

@@ -15,9 +15,16 @@ bool token_ctor_word(struct token* token, struct loc const* loc, struct str* str
 	return true;
 }
 
-bool token_ctor_num(struct token* token, struct loc const* loc, uint64_t u64)
+bool token_ctor_strlit(struct token* token, struct loc const* loc, struct str* str)
 {
-	if (!token_of_type(token, loc, TOKEN_NUM)) return false;
+	if (!token_of_type(token, loc, TOKEN_STRLIT)) return false;
+	token->val.str = *str;
+	return true;
+}
+
+bool token_ctor_numlit(struct token* token, struct loc const* loc, uint64_t u64)
+{
+	if (!token_of_type(token, loc, TOKEN_NUMLIT)) return false;
 	token->val.u64 = u64;
 	return true;
 }
@@ -36,9 +43,11 @@ void token_dtor(struct token* token)
 	case TOKEN_MINUS: FALLTHROUGH;
 	case TOKEN_EQUAL: FALLTHROUGH;
 	case TOKEN_COLON: FALLTHROUGH;
+	case TOKEN_COMA: FALLTHROUGH;
 	case TOKEN_LET: FALLTHROUGH;
-	case TOKEN_NUM: break;
+	case TOKEN_NUMLIT: break;
 	case TOKEN_WORD: str_dtor(&token->val.str); break;
+	case TOKEN_STRLIT: str_dtor(&token->val.str); break;
 	};
 }
 
@@ -61,9 +70,15 @@ void token_print(struct token* token, FILE* stream)
 	case TOKEN_MINUS: fputc('-', stream); break;
 	case TOKEN_EQUAL: fputc('=', stream); break;
 	case TOKEN_COLON: fputc(':', stream); break;
+	case TOKEN_COMA: fputc(',', stream); break;
 	case TOKEN_LET: fputs("let", stream); break;
 	case TOKEN_WORD: cv_print(cv_str(&token->val.str), stream); break;
-	case TOKEN_NUM: fprintf(stream, "%" PRIu64, token->val.u64); break;
+	case TOKEN_STRLIT:
+		fputc('"', stream);
+		cv_print(cv_str(&token->val.str), stream);
+		fputc('"', stream);
+		break;
+	case TOKEN_NUMLIT: fprintf(stream, "%" PRIu64, token->val.u64); break;
 	};
 }
 
@@ -81,9 +96,11 @@ void token_type_print(enum token_type type, FILE* stream)
 	case TOKEN_MINUS: fputc('-', stream); break;
 	case TOKEN_EQUAL: fputc('=', stream); break;
 	case TOKEN_COLON: fputc(':', stream); break;
+	case TOKEN_COMA: fputc(',', stream); break;
 	case TOKEN_LET: fputs("let", stream); break;
 	case TOKEN_WORD: fputs("word", stream); break;
-	case TOKEN_NUM: fputs("number", stream); break;
+	case TOKEN_STRLIT: fputs("string litteral", stream); break;
+	case TOKEN_NUMLIT: fputs("number litteral", stream); break;
 	};
 }
 

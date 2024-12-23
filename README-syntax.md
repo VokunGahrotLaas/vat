@@ -9,9 +9,11 @@ EOF = ? end of file ?;
 
 NEWLINE = ? new line ?;
 
-WHITESPACE = ? whitespace ?
+W = { ? whitespace ? }
 
-NUMBER = { _DIGIT };
+NUMLIT = { _DIGIT };
+
+STRLIT = "\"" { ? any ? } "\""
 
 WORD = (_LETTER - _DIGIT) { _LETTER };
 
@@ -21,13 +23,22 @@ _DIGIT = ? /[0-9]/ ?;
 
 _LETTER = ? /[a-zA-Z0-9_]/ ?;
 
+_STRLIT_CHAR =
+  ? any ? - "\"" - "\\"
+| "\\" "\""
+| "\\" "\\"
+| "\\" "n"
+| "\\" "t"
+;
+
 empty = ? empty ?;
 
 (* input rules *)
 
 parse_statement =
   statements NEWLINE
-| statements EOF;
+| statements EOF
+;
 
 parse_program = { statements NEWLINE } statements EOF;
 
@@ -50,9 +61,11 @@ opt_type =
 (* exp rules *)
 
 exp =
-  number
+  NUMLIT
+| STRLIT
 | lexp
 | ops
+| lexp "(" call_args ")"
 ;
 
 texp = var;
@@ -65,6 +78,11 @@ ops =
   "(" exp ")"
 | "+" exp
 | "-" exp
+;
+
+call_args =
+  empty
+| exp { "," exp }
 ;
 ```
 

@@ -35,7 +35,12 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 	switch (ast->type)
 	{
 	case AST_ERROR: UNREACHABLE();
-	case AST_NUMBER: fprintf(stream, "%" PRIu64, ast->value.number.u64); break;
+	case AST_NUMLIT: fprintf(stream, "%" PRIu64, ast->value.numlit.u64); break;
+	case AST_STRLIT:
+		fputc('"', stream);
+		cv_print(cv_str(&ast->value.word.str), stream);
+		fputc('"', stream);
+		break;
 	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
 	case AST_UNARY:
 		fputc((ast->value.unary.op == UNARY_PLUS ? '+' : '-'), stream);
@@ -51,6 +56,17 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 		}
 		break;
 	}
+	case AST_CALL:
+		transpile_c_ast(ast->value.call.fun, stream, indent);
+		fputc('(', stream);
+		struct list* args = &ast->value.call.args;
+		for (size_t i = 0; i < args->size; ++i)
+		{
+			if (i != 0) fputs(", ", stream);
+			if (!transpile_c_ast(*LIST_GET(args, struct ast*, i), stream, indent)) return false;
+		}
+		fputc(')', stream);
+		break;
 	case AST_ASSIGN: {
 		struct ast_assign* assign = &ast->value.assign;
 		if (assign->texp)

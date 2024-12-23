@@ -9,17 +9,24 @@ enum ast_type
 {
 	AST_ERROR,
 	// exps
-	AST_NUMBER,
+	AST_NUMLIT,
+	AST_STRLIT,
 	AST_WORD,
 	AST_UNARY,
+	AST_CALL,
 	// statements
 	AST_SEQ,
 	AST_ASSIGN,
 };
 
-struct ast_number
+struct ast_numlit
 {
 	uint64_t u64;
+};
+
+struct ast_strlit
+{
+	struct str str;
 };
 
 struct ast_word
@@ -37,6 +44,12 @@ struct ast_unary
 {
 	enum unary_type op;
 	struct ast* rhs;
+};
+
+struct ast_call
+{
+	struct ast* fun;
+	struct list args;
 };
 
 struct ast_seq
@@ -57,9 +70,11 @@ struct ast
 	struct loc loc;
 	union ast_value
 	{
-		struct ast_number number;
+		struct ast_numlit numlit;
+		struct ast_strlit strlit;
 		struct ast_word word;
 		struct ast_unary unary;
+		struct ast_call call;
 		struct ast_seq seq;
 		struct ast_assign assign;
 	} value;
