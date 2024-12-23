@@ -3,6 +3,9 @@
 // libc
 #include <stdlib.h>
 
+static inline void ast_print_newline_indent(FILE* stream, size_t indent);
+static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent);
+
 struct ast* ast_init(enum ast_type type, struct loc const* loc)
 {
 	struct ast* ast = calloc(1, sizeof(*ast));
@@ -22,6 +25,13 @@ void ast_free(struct ast* ast)
 	case AST_WORD: str_dtor(&ast->value.word.str); break;
 	case AST_UNARY: ast_free(ast->value.unary.rhs); break;
 	case AST_SEQ: list_dtor(&ast->value.seq.list); break;
+	case AST_ASSIGN: {
+		struct ast_assign* assign = &ast->value.assign;
+		ast_free(assign->texp);
+		ast_free(assign->lexp);
+		ast_free(assign->exp);
+		break;
+	}
 	};
 	free(ast);
 }
@@ -33,37 +43,7 @@ void ast_pdtor(struct ast** ast)
 	*ast = NULL;
 }
 
-void ast_print(struct ast* ast, FILE* stream)
-{
-	if (!ast)
-	{
-		fputs("<NULL>", stream);
-		return;
-	}
-	switch (ast->type)
-	{
-	case AST_ERROR:
-		fputs("@error(", stream);
-		loc_print(&ast->loc, stream);
-		fputc(')', stream);
-		break;
-	case AST_NUMBER: fprintf(stream, "%" PRIu64, ast->value.number.u64); break;
-	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
-	case AST_UNARY:
-		unary_print(ast->value.unary.op, stream);
-		ast_print(ast->value.unary.rhs, stream);
-		break;
-	case AST_SEQ: {
-		struct list* list = &ast->value.seq.list;
-		for (size_t i = 0; i < list->size; ++i)
-		{
-			ast_print(*LIST_GET(list, struct ast*, i), stream);
-			fputs(";\n", stream);
-		}
-		break;
-	}
-	};
-}
+void ast_print(struct ast* ast, FILE* stream) { ast_print_impl(ast, stream, 0); }
 
 void unary_print(enum unary_type type, FILE* stream)
 {
@@ -95,4 +75,57 @@ bool seq_push(struct ast* seq, struct ast* ast)
 	src->capacity = src->size = 0;
 	ast_free(ast);
 	return true;
+}
+
+static inline void ast_print_newline_indent(FILE* stream, size_t indent)
+{
+	fputc('\n', stream);
+	for (size_t i = 0; i < indent; ++i)
+		fputc('\t', stream);
+}
+
+static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
+{
+	if (!ast)
+	{
+		fputs("<NULL>", stream);
+		return;
+	}
+	switch (ast->type)
+	{
+	case AST_ERROR:
+		fputs("@error(", stream);
+		loc_print(&ast->loc, stream);
+		fputc(')', stream);
+		break;
+	case AST_NUMBER: fprintf(stream, "%" PRIu64, ast->value.number.u64); break;
+	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
+	case AST_UNARY:
+		unary_print(ast->value.unary.op, stream);
+		ast_print(ast->value.unary.rhs, stream);
+		break;
+	case AST_SEQ: {
+		struct list* list = &ast->value.seq.list;
+		for (size_t i = 0; i < list->size; ++i)
+		{
+			ast_print_newline_indent(stream, indent);
+			ast_print_impl(*LIST_GET(list, struct ast*, i), stream, indent);
+			fputc(';', stream);
+		}
+		break;
+	}
+	case AST_ASSIGN: {
+		struct ast_assign* assign = &ast->value.assign;
+		fputs("let ", stream);
+		ast_print_impl(assign->lexp, stream, indent);
+		if (assign->texp)
+		{
+			fputs(" : ", stream);
+			ast_print_impl(assign->texp, stream, indent);
+		}
+		fputs(" = ", stream);
+		ast_print_impl(assign->exp, stream, indent);
+		break;
+	}
+	};
 }

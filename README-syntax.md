@@ -9,6 +9,8 @@ EOF = ? end of file ?;
 
 NEWLINE = ? new line ?;
 
+WHITESPACE = ? whitespace ?
+
 NUMBER = { _DIGIT };
 
 WORD = (_LETTER - _DIGIT) { _LETTER };
@@ -29,20 +31,35 @@ parse_statement =
 
 parse_program = { statements NEWLINE } statements EOF;
 
-(* other rules *)
+(* statement rules *)
 
-statements =
-  empty
-| ( statement ) +
+statements = { statement };
+
+statement =
+  exp ";"
+| assign ";"
 ;
 
-statement = exp ";";
+assign = "let" lexp opt_type "=" exp;
+
+opt_type =
+  empty
+| ":" texp
+;
+
+(* exp rules *)
 
 exp =
   number
-| word
+| lexp
 | ops
 ;
+
+texp = var;
+
+lexp = var;
+
+var = word;
 
 ops =
   "(" exp ")"
@@ -56,10 +73,10 @@ ops =
 ## Current tasks
 
 * arithmetic operators
+* basic types
 
 ## TODO
 
-* basic types
 * pointers
 * functions
 * structs

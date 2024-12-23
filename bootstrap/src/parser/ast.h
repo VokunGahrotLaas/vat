@@ -8,10 +8,13 @@
 enum ast_type
 {
 	AST_ERROR,
+	// exps
 	AST_NUMBER,
 	AST_WORD,
 	AST_UNARY,
+	// statements
 	AST_SEQ,
+	AST_ASSIGN,
 };
 
 struct ast_number
@@ -41,6 +44,13 @@ struct ast_seq
 	struct list list;
 };
 
+struct ast_assign
+{
+	struct ast* texp;
+	struct ast* lexp;
+	struct ast* exp;
+};
+
 struct ast
 {
 	enum ast_type type;
@@ -51,6 +61,7 @@ struct ast
 		struct ast_word word;
 		struct ast_unary unary;
 		struct ast_seq seq;
+		struct ast_assign assign;
 	} value;
 };
 

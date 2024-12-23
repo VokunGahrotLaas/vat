@@ -12,7 +12,7 @@ bool transpile_c(struct ast* ast, char const* filename)
 		fprintf(stderr, "could not open \"%s\" for writing\n", filename);
 		return false;
 	}
-	fprintf(stream, "#include <stddef.h>\n");
+	fprintf(stream, "#include <stdio.h>\n");
 	fprintf(stream, "\n");
 	fprintf(stream, "int main(void) {");
 	bool r = transpile_c_ast(ast, stream, 1);
@@ -49,6 +49,18 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 			if (!transpile_c_ast(*LIST_GET(list, struct ast*, i), stream, indent)) return false;
 			fputc(';', stream);
 		}
+		break;
+	}
+	case AST_ASSIGN: {
+		struct ast_assign* assign = &ast->value.assign;
+		if (assign->texp)
+			transpile_c_ast(assign->texp, stream, indent);
+		else
+			fputs("int", stream);
+		fputc(' ', stream);
+		transpile_c_ast(assign->lexp, stream, indent);
+		fputs(" = ", stream);
+		transpile_c_ast(assign->exp, stream, indent);
 		break;
 	}
 	};

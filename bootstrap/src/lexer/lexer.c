@@ -89,7 +89,9 @@ static inline bool is_op(int c)
 	case '(': FALLTHROUGH;
 	case ')': FALLTHROUGH;
 	case '+': FALLTHROUGH;
-	case '-': return true;
+	case '-': FALLTHROUGH;
+	case '=': FALLTHROUGH;
+	case ':': return true;
 	default: return false;
 	};
 }
@@ -153,7 +155,14 @@ static inline void lexer_lex_word(struct lexer* lexer)
 		str_pushc(&v, c);
 	}
 	lexer_loc_end(lexer, &loc);
-	token_ctor_word(&lexer->current, &loc, &v);
+	if (cv_cmp(cv_str(&v), cv_cstr("let")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_LET);
+	else
+	{
+		token_ctor_word(&lexer->current, &loc, &v);
+		return;
+	}
+	str_dtor(&v);
 }
 
 static inline void lexer_lex_op(struct lexer* lexer)
@@ -164,7 +173,7 @@ static inline void lexer_lex_op(struct lexer* lexer)
 	str_pushc(&v, stream_pop(&lexer->stream));
 	lexer_loc_end(lexer, &loc);
 	if (cv_cmp(cv_str(&v), cv_cstr(";")) == 0)
-		token_of_type(&lexer->current, &loc, TOKEN_SEMICOLUMN);
+		token_of_type(&lexer->current, &loc, TOKEN_SEMICOLON);
 	else if (cv_cmp(cv_str(&v), cv_cstr("(")) == 0)
 		token_of_type(&lexer->current, &loc, TOKEN_LPAREN);
 	else if (cv_cmp(cv_str(&v), cv_cstr(")")) == 0)
@@ -173,6 +182,10 @@ static inline void lexer_lex_op(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_PLUS);
 	else if (cv_cmp(cv_str(&v), cv_cstr("-")) == 0)
 		token_of_type(&lexer->current, &loc, TOKEN_MINUS);
+	else if (cv_cmp(cv_str(&v), cv_cstr("=")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_EQUAL);
+	else if (cv_cmp(cv_str(&v), cv_cstr(":")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_COLON);
 	else
 	{
 		lexer->error = true;

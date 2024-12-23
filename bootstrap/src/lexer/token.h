@@ -15,15 +15,19 @@ enum token_type
 	TOKEN_NEWLINE = 1 << 1,
 	TOKEN_EOF = 1 << 2,
 	/// punct
-	TOKEN_SEMICOLUMN = 1 << 3,
+	TOKEN_SEMICOLON = 1 << 3,
 	TOKEN_LPAREN = 1 << 4,
 	TOKEN_RPAREN = 1 << 5,
 	TOKEN_PLUS = 1 << 6,
 	TOKEN_MINUS = 1 << 7,
+	TOKEN_EQUAL = 1 << 8,
+	TOKEN_COLON = 1 << 9,
+	// words
+	TOKEN_LET = 1 << 10,
 	// value: str
-	TOKEN_WORD = 1 << 8,
+	TOKEN_WORD = 1 << 11,
 	// value: u64
-	TOKEN_NUM = 1 << 9,
+	TOKEN_NUM = 1 << 12,
 #define TOKEN_MAX (TOKEN_NUM + 1)
 };
 
