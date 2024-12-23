@@ -15,6 +15,8 @@ See [Syntax](./README-Syntax.md)
 * bootstrap vatc in C
   * lexer
   * parser
+  * transpile to c
+  * parse args
 
 ## Current tasks
 
@@ -26,8 +28,6 @@ See [Syntax](./README-Syntax.md)
 
 * bootstrap vatc in C
   * type checker ?
-  * transpile to c
-  * parse args
   * tests
 * vatc in vat
   * lexer

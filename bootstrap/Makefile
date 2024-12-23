@@ -7,7 +7,7 @@ O =
 EXEC = ${builddir}/vatc
 
 CC = gcc
-CPPFLAGS = -MMD -MP -Isrc
+CPPFLAGS = -MMD -MP -Isrc -D_GNU_SOURCE
 CCFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99 -O$O
 LDFLAGS = -O$O
 
