@@ -4,8 +4,6 @@ asan = true
 args =
 O =
 
-EXEC = ${builddir}/vatc
-
 CC = gcc
 CPPFLAGS = -MMD -MP -Isrc -D_GNU_SOURCE
 CCFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99 -O$O
@@ -14,12 +12,26 @@ LDFLAGS = -O$O
 SRC = ${wildcard src/*.c src/*/*.c}
 OBJ = ${SRC:%.c=${builddir}/%.o}
 DEP = ${OBJ:.o=.d}
+VATC = ${builddir}/vatc
+
+VATCFLAGS = --backend C
+VATCPPFLAGS = -MMD -MP -D_GNU_SOURCE
+VATCCFLAGS = -std=c99 -O${O}
+VATLDFLAGS = -O$O
+
+EXPS_SRC = ${wildcard exemples/*.vat}
+EXPS_OBJ = ${EXPS_SRC:%.vat=${builddir}/%.c}
+EXPS_DEP = ${EXPS_OBJ:.c=.d}
+EXPS = ${EXPS_OBJ:.c=}
 
 ifeq (${mode},debug)
 O = 0
 CPPFLAGS += -DBOOTSTRAP_DEBUG
 CCFLAGS += -ggdb3
 LDFLAGS += -ggdb3
+VATCPPFLAGS += -DBOOTSTRAP_DEBUG
+VATCCFLAGS += -ggdb3
+VATLDFLAGS += -ggdb3
 else ifeq (${mode},release)
 O = 2
 else
@@ -29,11 +41,19 @@ endif
 ifeq (${asan},true)
 CCFLAGS += -fsanitize=leak,address,undefined
 LDFLAGS += -fsanitize=leak,address,undefined
+VATCCFLAGS += -fsanitize=leak,address,undefined
+VATLDFLAGS += -fsanitize=leak,address,undefined
 else ifneq (${asan},false)
 ${error invalid value for `asan`: ${asan}, should be true or false}
 endif
 
-all: ${EXEC}
+all: vatc
+
+vatc: ${VATC}
+
+exemples: ${EXPS}
+
+exemples_c: ${EXPS_OBJ}
 
 obj: ${OBJ}
 
@@ -41,22 +61,32 @@ bear: clean
 	mkdir -p ${builddir}
 	bear --output ${builddir}/compile_commands.json -- make obj
 
-run: ${EXEC}
+run: ${VATC}
 	$< ${args}
 
-clean:
-	${RM} ${EXEC} ${OBJ}
+clean_exemples:
+	${RM} ${EXPS} ${EXPS_OBJ} ${EXPS_DEP}
+
+clean: clean_exemples
+	${RM} ${VATC} ${OBJ} ${DEP}
 
 mrproper: clean
 	${RM} -r ${builddir}
 
-.PHONY = all obj bear run clean mrproper
+.PHONY = all vatc exemples exemples_c obj bear run clean_exemples clean mrproper
 
-${EXEC}: ${OBJ}
+${VATC}: ${OBJ}
 	${CC} -o $@ $^ ${LDFLAGS}
 
-${builddir}/%.o: %.c
+${builddir}/src/%.o: src/%.c
 	mkdir -p ${dir $@}
 	${CC} ${CPPFLAGS} ${CCFLAGS} -o $@ -c $<
 
--include ${DEP}
+${EXPS}: ${builddir}/exemples/%: ${builddir}/exemples/%.c
+	${CC} ${VATCPPFLAGS} ${VATCCFLAGS} -o $@ $< ${VATLDFLAGS}
+
+${builddir}/exemples/%.c: exemples/%.vat ${VATC}
+	mkdir -p ${dir $@}
+	${VATC} ${VATCFLAGS} -o $@ -t $<
+
+-include ${DEP} ${EXPS_DEPS}

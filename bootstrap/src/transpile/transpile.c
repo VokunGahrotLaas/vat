@@ -13,12 +13,8 @@ bool transpile_c(struct ast* ast, char const* filename)
 		return false;
 	}
 	fprintf(stream, "#include <stdio.h>\n");
+	bool r = transpile_c_ast(ast, stream, 0);
 	fprintf(stream, "\n");
-	fprintf(stream, "int main(void) {");
-	bool r = transpile_c_ast(ast, stream, 1);
-	fprintf(stream, "\n");
-	fprintf(stream, "\treturn 0;\n");
-	fprintf(stream, "}\n");
 	fclose(stream);
 	return r;
 }
@@ -51,8 +47,9 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 		for (size_t i = 0; i < list->size; ++i)
 		{
 			transpile_c_newline_indent(stream, indent);
-			if (!transpile_c_ast(*LIST_GET(list, struct ast*, i), stream, indent)) return false;
-			fputc(';', stream);
+			struct ast* exp = *LIST_GET(list, struct ast*, i);
+			if (!transpile_c_ast(exp, stream, indent)) return false;
+			if (exp->type != AST_FNDEC) fputc(';', stream);
 		}
 		break;
 	}
@@ -67,18 +64,60 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 		}
 		fputc(')', stream);
 		break;
-	case AST_ASSIGN: {
-		struct ast_assign* assign = &ast->value.assign;
-		if (assign->texp)
-			transpile_c_ast(assign->texp, stream, indent);
+	case AST_VARDEC: {
+		struct ast_vardec* vardec = &ast->value.vardec;
+		if (vardec->texp)
+			transpile_c_ast(vardec->texp, stream, indent);
 		else
 			fputs("int", stream);
 		fputc(' ', stream);
-		transpile_c_ast(assign->lexp, stream, indent);
+		transpile_c_ast(vardec->name, stream, indent);
 		fputs(" = ", stream);
-		transpile_c_ast(assign->exp, stream, indent);
+		transpile_c_ast(vardec->exp, stream, indent);
 		break;
 	}
+	case AST_FNDEC: {
+		struct ast_fndec* fndec = &ast->value.fndec;
+		if (fndec->texp)
+			transpile_c_ast(fndec->texp, stream, indent);
+		else
+			fputs("void", stream);
+		fputc(' ', stream);
+		transpile_c_ast(fndec->name, stream, indent);
+		fputc('(', stream);
+		if (fndec->args.size == 0) fputs("void", stream);
+		for (size_t i = 0; i < fndec->args.size; ++i)
+		{
+			if (i != 0) fputs(", ", stream);
+			if (!transpile_c_ast(*LIST_GET(&fndec->args, struct ast*, i), stream, indent)) return false;
+			struct ast* texp = *LIST_GET(&fndec->targs, struct ast*, i);
+			if (!texp) continue;
+			fputs(": ", stream);
+			if (!transpile_c_ast(texp, stream, indent)) return false;
+		}
+		fputs(") ", stream);
+		if (fndec->exp->type == AST_SEQ)
+		{
+			fputc('{', stream);
+			transpile_c_ast(fndec->exp, stream, indent + 1);
+			transpile_c_newline_indent(stream, indent);
+			fputc('}', stream);
+		}
+		else
+		{
+			fputc('{', stream);
+			transpile_c_newline_indent(stream, indent + 1);
+			transpile_c_ast(fndec->exp, stream, indent + 1);
+			if (fndec->exp->type != AST_FNDEC) fputc(';', stream);
+			transpile_c_newline_indent(stream, indent);
+			fputc('}', stream);
+		}
+		break;
+	}
+	case AST_RET:
+		fputs("return ", stream);
+		transpile_c_ast(ast->value.ret.exp, stream, indent);
+		break;
 	};
 	return true;
 }

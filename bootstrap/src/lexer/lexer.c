@@ -93,7 +93,9 @@ static inline bool is_op(int c)
 	case '-': FALLTHROUGH;
 	case '=': FALLTHROUGH;
 	case ':': FALLTHROUGH;
-	case ',': return true;
+	case ',': FALLTHROUGH;
+	case '{': FALLTHROUGH;
+	case '}': return true;
 	default: return false;
 	};
 }
@@ -168,6 +170,10 @@ static inline void lexer_lex_word(struct lexer* lexer)
 	lexer_loc_end(lexer, &loc);
 	if (cv_cmp(cv_str(&v), cv_cstr("let")) == 0)
 		token_of_type(&lexer->current, &loc, TOKEN_LET);
+	else if (cv_cmp(cv_str(&v), cv_cstr("fn")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_FN);
+	else if (cv_cmp(cv_str(&v), cv_cstr("ret")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_RET);
 	else
 	{
 		token_ctor_word(&lexer->current, &loc, &v);
@@ -179,35 +185,44 @@ static inline void lexer_lex_word(struct lexer* lexer)
 static inline void lexer_lex_op(struct lexer* lexer)
 {
 	struct loc loc = lexer_loc_ctor_peek(lexer);
-	struct str v;
-	str_ctor(&v, 1);
-	str_pushc(&v, stream_pop(&lexer->stream));
-	lexer_loc_end(lexer, &loc);
-	if (cv_cmp(cv_str(&v), cv_cstr(";")) == 0)
+	int c = stream_pop(&lexer->stream);
+	if (c == ';')
 		token_of_type(&lexer->current, &loc, TOKEN_SEMICOLON);
-	else if (cv_cmp(cv_str(&v), cv_cstr("(")) == 0)
+	else if (c == '(')
 		token_of_type(&lexer->current, &loc, TOKEN_LPAREN);
-	else if (cv_cmp(cv_str(&v), cv_cstr(")")) == 0)
+	else if (c == ')')
 		token_of_type(&lexer->current, &loc, TOKEN_RPAREN);
-	else if (cv_cmp(cv_str(&v), cv_cstr("+")) == 0)
+	else if (c == '+')
 		token_of_type(&lexer->current, &loc, TOKEN_PLUS);
-	else if (cv_cmp(cv_str(&v), cv_cstr("-")) == 0)
-		token_of_type(&lexer->current, &loc, TOKEN_MINUS);
-	else if (cv_cmp(cv_str(&v), cv_cstr("=")) == 0)
+	else if (c == '-')
+	{
+		int c = stream_peek(&lexer->stream);
+		if (c == '>')
+		{
+			stream_pop(&lexer->stream);
+			lexer_loc_end(lexer, &loc);
+			token_of_type(&lexer->current, &loc, TOKEN_ARROW);
+		}
+		else
+			token_of_type(&lexer->current, &loc, TOKEN_MINUS);
+	}
+	else if (c == '=')
 		token_of_type(&lexer->current, &loc, TOKEN_EQUAL);
-	else if (cv_cmp(cv_str(&v), cv_cstr(":")) == 0)
+	else if (c == ':')
 		token_of_type(&lexer->current, &loc, TOKEN_COLON);
-	else if (cv_cmp(cv_str(&v), cv_cstr(",")) == 0)
+	else if (c == ',')
 		token_of_type(&lexer->current, &loc, TOKEN_COMA);
+	else if (c == '{')
+		token_of_type(&lexer->current, &loc, TOKEN_LCURLBRA);
+	else if (c == '}')
+		token_of_type(&lexer->current, &loc, TOKEN_RCURLBRA);
 	else
 	{
 		lexer->error = true;
 		loc_print(&loc, stderr);
-		fprintf(stderr, ": invalid operator found (%s)\n", v.data);
-		str_dtor(&v);
+		fprintf(stderr, ": invalid operator found (%c)\n", c);
 		token_of_type(&lexer->current, &loc, TOKEN_ERROR);
 	}
-	str_dtor(&v);
 }
 
 static inline void lexer_lex_strlit(struct lexer* lexer)

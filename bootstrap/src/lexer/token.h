@@ -24,13 +24,18 @@ enum token_type
 	TOKEN_EQUAL = 1 << 9,
 	TOKEN_COLON = 1 << 10,
 	TOKEN_COMA = 1 << 11,
+	TOKEN_LCURLBRA = 1 << 12,
+	TOKEN_RCURLBRA = 1 << 13,
+	TOKEN_ARROW = 1 << 14,
 	// words
-	TOKEN_LET = 1 << 12,
+	TOKEN_LET = 1 << 15,
+	TOKEN_FN = 1 << 16,
+	TOKEN_RET = 1 << 17,
 	// value: str
-	TOKEN_WORD = 1 << 13,
-	TOKEN_STRLIT = 1 << 14,
+	TOKEN_WORD = 1 << 18,
+	TOKEN_STRLIT = 1 << 19,
 	// value: u64
-	TOKEN_NUMLIT = 1 << 15,
+	TOKEN_NUMLIT = 1 << 20,
 #define TOKEN_MAX (TOKEN_NUMLIT + 1)
 };
 

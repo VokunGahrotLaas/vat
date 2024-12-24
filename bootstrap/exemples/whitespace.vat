@@ -1,4 +1,6 @@
 
- let x : int = 32 ; 
- printf ( "hello: %i\n" , ( + x ) ) ; 
+ fn main ( ) -> void { 
+     let x : int = 32 ; 
+     printf ( "hello: %i\n" , ( + x ) ) ; 
+ } 
 

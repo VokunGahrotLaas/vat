@@ -30,13 +30,23 @@ void ast_free(struct ast* ast)
 		list_dtor(&ast->value.call.args);
 		break;
 	case AST_SEQ: list_dtor(&ast->value.seq.list); break;
-	case AST_ASSIGN: {
-		struct ast_assign* assign = &ast->value.assign;
-		ast_free(assign->texp);
-		ast_free(assign->lexp);
-		ast_free(assign->exp);
+	case AST_VARDEC: {
+		struct ast_vardec* vardec = &ast->value.vardec;
+		ast_free(vardec->name);
+		ast_free(vardec->texp);
+		ast_free(vardec->exp);
 		break;
 	}
+	case AST_FNDEC: {
+		struct ast_fndec* fndec = &ast->value.fndec;
+		list_dtor(&fndec->args);
+		list_dtor(&fndec->targs);
+		ast_free(fndec->name);
+		ast_free(fndec->texp);
+		ast_free(fndec->exp);
+		break;
+	}
+	case AST_RET: ast_free(ast->value.ret.exp); break;
 	};
 	free(ast);
 }
@@ -129,23 +139,66 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		for (size_t i = 0; i < list->size; ++i)
 		{
 			ast_print_indent(stream, indent);
-			ast_print_impl(*LIST_GET(list, struct ast*, i), stream, indent);
-			fputs(";\n", stream);
+			struct ast* exp = *LIST_GET(list, struct ast*, i);
+			ast_print_impl(exp, stream, indent);
+			if (exp->type != AST_FNDEC)
+				fputs(";\n", stream);
+			else
+				fputc('\n', stream);
 		}
 		break;
 	}
-	case AST_ASSIGN: {
-		struct ast_assign* assign = &ast->value.assign;
+	case AST_VARDEC: {
+		struct ast_vardec* vardec = &ast->value.vardec;
 		fputs("let ", stream);
-		ast_print_impl(assign->lexp, stream, indent);
-		if (assign->texp)
+		ast_print_impl(vardec->name, stream, indent);
+		if (vardec->texp)
 		{
-			fputs(" : ", stream);
-			ast_print_impl(assign->texp, stream, indent);
+			fputs(": ", stream);
+			ast_print_impl(vardec->texp, stream, indent);
 		}
 		fputs(" = ", stream);
-		ast_print_impl(assign->exp, stream, indent);
+		ast_print_impl(vardec->exp, stream, indent);
 		break;
 	}
+	case AST_FNDEC: {
+		struct ast_fndec* fndec = &ast->value.fndec;
+		fputs("fn ", stream);
+		ast_print_impl(fndec->name, stream, indent);
+		fputc('(', stream);
+		for (size_t i = 0; i < fndec->args.size; ++i)
+		{
+			if (i != 0) fputs(", ", stream);
+			ast_print_impl(*LIST_GET(&fndec->args, struct ast*, i), stream, indent);
+			struct ast* texp = *LIST_GET(&fndec->targs, struct ast*, i);
+			if (!texp) continue;
+			fputs(": ", stream);
+			ast_print_impl(texp, stream, indent);
+		}
+		fputc(')', stream);
+		if (fndec->texp)
+		{
+			fputs(" -> ", stream);
+			ast_print_impl(fndec->texp, stream, indent);
+		}
+		if (fndec->exp->type == AST_SEQ)
+		{
+			fputs(" {\n", stream);
+			ast_print_impl(fndec->exp, stream, indent + 1);
+			ast_print_indent(stream, indent);
+			fputc('}', stream);
+		}
+		else
+		{
+			fputc(' ', stream);
+			ast_print_impl(fndec->exp, stream, indent);
+			if (fndec->exp->type != AST_FNDEC) fputc(';', stream);
+		}
+		break;
+	}
+	case AST_RET:
+		fputs("ret ", stream);
+		ast_print_impl(ast->value.ret.exp, stream, indent);
+		break;
 	};
 }

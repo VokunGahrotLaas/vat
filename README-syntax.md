@@ -46,14 +46,33 @@ statements = { statement };
 
 statement =
   exp ";"
-| assign ";"
+| var_dec ";"
+| fun_dec
+| "ret" exp ";"
 ;
 
-assign = "let" lexp opt_type "=" exp;
+var_dec = "let" lexp opt_type "=" exp;
 
 opt_type =
   empty
 | ":" texp
+;
+
+fun_dec = "fn" var "(" fun_args ")" opt_ret block;
+
+fun_args =
+  empty
+| exp opt_type { "," exp opt_type }
+;
+
+opt_ret =
+  empty
+| "->" texp
+;
+
+block =
+  statement
+| "{" { statements NEWLINE } statements "}"
 ;
 
 (* exp rules *)
@@ -63,7 +82,7 @@ exp =
 | STRLIT
 | lexp
 | ops
-| lexp "(" call_args ")"
+| var "(" call_args ")"
 ;
 
 texp = var;
@@ -90,11 +109,11 @@ call_args =
 
 * arithmetic operators
 * basic types
+* functions
 
 ## TODO
 
 * pointers
-* functions
 * structs
 * tagged unions
 * attributes (c\_name)

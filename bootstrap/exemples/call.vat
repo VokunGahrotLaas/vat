@@ -1,2 +1,4 @@
-let x: int = 30;
-printf("%i", x);
+fn main() {
+	let x: int = 30;
+	printf("%i", x);
+}

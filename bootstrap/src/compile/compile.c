@@ -37,3 +37,28 @@ bool compile_c(char const* source, char const* dest)
 	}
 	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
+
+bool run(char const* file)
+{
+	char path[PATH_MAX];
+	strncpy(path, file, PATH_MAX);
+	char* argv[] = { path };
+	int pid = fork();
+	if (pid < 0)
+	{
+		warn("fork() failed");
+		return false;
+	}
+	else if (pid == 0)
+	{
+		execvp(*argv, argv);
+		err(1, "execvp() failed");
+	}
+	int status = 0;
+	if (!waitpid(pid, &status, 0))
+	{
+		warn("waitpid() failed");
+		return false;
+	}
+	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}

@@ -1,1 +1,3 @@
-printf("Hello Word!\n");
+fn main() {
+	printf("Hello Word!\n");
+}

@@ -1,0 +1,6 @@
+fn hello_world() printf("Hello World!\n");
+
+fn main() -> int {
+	hello_world();
+	ret 0;
+}

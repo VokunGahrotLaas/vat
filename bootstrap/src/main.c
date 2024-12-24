@@ -17,13 +17,30 @@ enum main_state
 	MAIN_PRINT_AST,
 	MAIN_TRANSPILE,
 	MAIN_COMPILE,
+	MAIN_RUN,
+};
+
+enum backend
+{
+	BACKEND_NONE = 0,
+	BACKEND_C,
+};
+
+typedef bool backend_transpile_t(struct ast* ast, char const* dest);
+typedef bool backend_compile_t(char const* source, char const* dest);
+
+struct vbackend
+{
+	backend_transpile_t* transpile;
+	backend_compile_t* compile;
 };
 
 int main_help(char const* name, FILE* stream, int r);
 int main_lexer(char const* source);
 int main_parser(char const* source);
-int main_transpile_c(char const* source, char const* dest);
-int main_compile_c(char const* source, char const* dest);
+int main_transpile_c(char const* source, char const* dest, struct vbackend* backend);
+int main_compile_c(char const* source, char const* dest, struct vbackend* backend);
+int main_run_c(char const* source, struct vbackend* backend);
 
 int main(int argc, char** argv)
 {
@@ -32,17 +49,27 @@ int main(int argc, char** argv)
 	char const* output = NULL;
 	char const* source = NULL;
 	enum main_state state = MAIN_NONE;
+	enum backend backend = BACKEND_NONE;
+	struct vbackend vbackend[] = {
+		[BACKEND_C] = {
+			.transpile = &transpile_c,
+			.compile = &compile_c,
+		},
+		[BACKEND_NONE] = vbackend[BACKEND_C],
+	};
 
 	struct option l_opt[] = {
 		{ "transpile",	   no_argument,		NULL, 't' },
 		{ "compile",		 no_argument,		  NULL, 'c' },
+		{ "run",			 no_argument,		  NULL, 'r' },
 		{ "print-ast",	   no_argument,		NULL, 'A' },
 		{ "print-tokens", no_argument,	   NULL, 'T' },
 		{ "help",		  no_argument,	   NULL, 'h' },
 		{ "output",		required_argument, NULL, 'o' },
+		{ "backend",		 required_argument, NULL, 'b' },
 		{ NULL,			0,				   NULL, 0   },
 	};
-	char const* s_opt = "tcATho:";
+	char const* s_opt = "tcrATho:b:";
 	int c_opt = -1;
 	while ((c_opt = getopt_long(argc, argv, s_opt, l_opt, NULL)) != -1)
 	{
@@ -55,6 +82,21 @@ int main(int argc, char** argv)
 			}
 			else
 				output = optarg;
+		}
+		else if (c_opt == 'b')
+		{
+			if (backend != BACKEND_NONE)
+			{
+				state = MAIN_ERROR;
+				warnx("-b can only but passed once");
+			}
+			else if (strcmp(optarg, "C") == 0 || strcmp(optarg, "c") == 0)
+				backend = BACKEND_C;
+			else
+			{
+				state = MAIN_ERROR;
+				warnx("invalid backend \"%s\"", optarg);
+			}
 		}
 		else if (c_opt == 'c')
 		{
@@ -75,6 +117,16 @@ int main(int argc, char** argv)
 			}
 			else
 				state = MAIN_TRANSPILE;
+		}
+		else if (c_opt == 'r')
+		{
+			if (state != MAIN_NONE && state != MAIN_RUN)
+			{
+				state = MAIN_ERROR;
+				warnx("-r cannot be combined with other actions");
+			}
+			else
+				state = MAIN_RUN;
 		}
 		else if (c_opt == 'A')
 		{
@@ -146,8 +198,9 @@ int main(int argc, char** argv)
 	case MAIN_ERROR: r = main_help(*argv, stderr, 1); break;
 	case MAIN_HELP: r = main_help(*argv, stdout, 0); break;
 	case MAIN_NONE: FALLTHROUGH;
-	case MAIN_COMPILE: r = main_compile_c(source, output); break;
-	case MAIN_TRANSPILE: r = main_transpile_c(source, output); break;
+	case MAIN_COMPILE: r = main_compile_c(source, output, &vbackend[backend]); break;
+	case MAIN_TRANSPILE: r = main_transpile_c(source, output, &vbackend[backend]); break;
+	case MAIN_RUN: r = main_run_c(source, &vbackend[backend]); break;
 	case MAIN_PRINT_AST: r = main_parser(source); break;
 	case MAIN_PRINT_TOKENS: r = main_lexer(source); break;
 	};
@@ -162,8 +215,10 @@ int main_help(char const* name, FILE* stream, int r)
 	fprintf(stream, "\n");
 	fprintf(stream, "OPTIONS:\n");
 	fprintf(stream, "  -o/--output <file>: specify output file\n");
-	fprintf(stream, "  -c/--compile: compile source to executable with cc (default)\n");
-	fprintf(stream, "  -t/--transpile: transpile source to C\n");
+	fprintf(stream, "  -b/--backend C: specify backend type (only C for now)\n");
+	fprintf(stream, "  -t/--transpile: transpile source to backend\n");
+	fprintf(stream, "  -c/--compile: compile source to executable with backend (default)\n");
+	fprintf(stream, "  -r/--run: run compiled code\n");
 	fprintf(stream, "  -T/--print-tokens: print all the tokens from the source\n");
 	fprintf(stream, "  -T/--print-ast: print the AST from the source (displayed as source code)\n");
 	fprintf(stream, "  -h/--help: print this message\n");
@@ -202,7 +257,7 @@ int main_parser(char const* source)
 	return r;
 }
 
-int main_transpile_c(char const* source, char const* dest)
+int main_transpile_c(char const* source, char const* dest, struct vbackend* backend)
 {
 	struct parser parser;
 	parser_of_file(&parser, source);
@@ -210,33 +265,37 @@ int main_transpile_c(char const* source, char const* dest)
 	int r = parser.lexer.error || parser.error ? 1 : 0;
 	parser_dtor(&parser);
 	if (r) return r;
-	r = !transpile_c(ast, dest) ? 1 : 0;
+	r = !(*backend->transpile)(ast, dest) ? 1 : 0;
 	ast_free(ast);
 	return r;
 }
 
-int main_compile_c(char const* source, char const* dest)
+int main_compile_c(char const* source, char const* dest, struct vbackend* backend)
 {
-	struct parser parser;
-	parser_of_file(&parser, source);
-	struct ast* ast = parser_parse(&parser);
-	int r = parser.lexer.error || parser.error ? 1 : 0;
-	parser_dtor(&parser);
-	if (r) return r;
 	char tmp_file[] = "/tmp/vatc-transpile_c-XXXXXX.c";
-	if (!mkstemps(tmp_file, 2))
-	{
-		ast_free(ast);
-		return 1;
-	}
-	r = !transpile_c(ast, tmp_file) ? 1 : 0;
-	ast_free(ast);
+	if (!mkstemps(tmp_file, 2)) return 1;
+	int r = main_transpile_c(source, tmp_file, backend);
 	if (r)
 	{
 		unlink(tmp_file);
 		return r;
 	}
-	r = !compile_c(tmp_file, dest) ? 1 : 0;
+	r = !(*backend->compile)(tmp_file, dest) ? 1 : 0;
+	unlink(tmp_file);
+	return r;
+}
+
+int main_run_c(char const* source, struct vbackend* backend)
+{
+	char tmp_file[] = "/tmp/vatc-run_c-XXXXXX.out";
+	if (!mkstemps(tmp_file, 4)) return 1;
+	int r = main_compile_c(source, tmp_file, backend);
+	if (r)
+	{
+		unlink(tmp_file);
+		return r;
+	}
+	r = !run(tmp_file) ? 1 : 0;
 	unlink(tmp_file);
 	return r;
 }

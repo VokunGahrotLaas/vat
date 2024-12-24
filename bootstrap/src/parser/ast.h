@@ -16,7 +16,9 @@ enum ast_type
 	AST_CALL,
 	// statements
 	AST_SEQ,
-	AST_ASSIGN,
+	AST_VARDEC,
+	AST_FNDEC,
+	AST_RET,
 };
 
 struct ast_numlit
@@ -57,10 +59,24 @@ struct ast_seq
 	struct list list;
 };
 
-struct ast_assign
+struct ast_vardec
 {
+	struct ast* name;
 	struct ast* texp;
-	struct ast* lexp;
+	struct ast* exp;
+};
+
+struct ast_fndec
+{
+	struct list args;
+	struct list targs;
+	struct ast* name;
+	struct ast* texp;
+	struct ast* exp;
+};
+
+struct ast_ret
+{
 	struct ast* exp;
 };
 
@@ -76,7 +92,9 @@ struct ast
 		struct ast_unary unary;
 		struct ast_call call;
 		struct ast_seq seq;
-		struct ast_assign assign;
+		struct ast_vardec vardec;
+		struct ast_fndec fndec;
+		struct ast_ret ret;
 	} value;
 };
 

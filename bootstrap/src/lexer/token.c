@@ -45,7 +45,12 @@ void token_dtor(struct token* token)
 	case TOKEN_EQUAL: FALLTHROUGH;
 	case TOKEN_COLON: FALLTHROUGH;
 	case TOKEN_COMA: FALLTHROUGH;
+	case TOKEN_LCURLBRA: FALLTHROUGH;
+	case TOKEN_RCURLBRA: FALLTHROUGH;
+	case TOKEN_ARROW: FALLTHROUGH;
 	case TOKEN_LET: FALLTHROUGH;
+	case TOKEN_FN: FALLTHROUGH;
+	case TOKEN_RET: FALLTHROUGH;
 	case TOKEN_NUMLIT: break;
 	case TOKEN_WORD: str_dtor(&token->val.str); break;
 	case TOKEN_STRLIT: str_dtor(&token->val.str); break;
@@ -73,7 +78,12 @@ void token_print(struct token* token, FILE* stream)
 	case TOKEN_EQUAL: fputc('=', stream); break;
 	case TOKEN_COLON: fputc(':', stream); break;
 	case TOKEN_COMA: fputc(',', stream); break;
+	case TOKEN_LCURLBRA: fputc('{', stream); break;
+	case TOKEN_RCURLBRA: fputc('}', stream); break;
+	case TOKEN_ARROW: fputs("->", stream); break;
 	case TOKEN_LET: fputs("let", stream); break;
+	case TOKEN_FN: fputs("fn", stream); break;
+	case TOKEN_RET: fputs("ret", stream); break;
 	case TOKEN_WORD: cv_print(cv_str(&token->val.str), stream); break;
 	case TOKEN_STRLIT:
 		fputc('"', stream);
@@ -100,7 +110,12 @@ void token_type_print(enum token_type type, FILE* stream)
 	case TOKEN_EQUAL: fputc('=', stream); break;
 	case TOKEN_COLON: fputc(':', stream); break;
 	case TOKEN_COMA: fputc(',', stream); break;
+	case TOKEN_LCURLBRA: fputc('{', stream); break;
+	case TOKEN_RCURLBRA: fputc('}', stream); break;
+	case TOKEN_ARROW: fputs("->", stream); break;
 	case TOKEN_LET: fputs("let", stream); break;
+	case TOKEN_FN: fputs("fn", stream); break;
+	case TOKEN_RET: fputs("ret", stream); break;
 	case TOKEN_WORD: fputs("word", stream); break;
 	case TOKEN_STRLIT: fputs("string litteral", stream); break;
 	case TOKEN_NUMLIT: fputs("number litteral", stream); break;
