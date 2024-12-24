@@ -1,0 +1,2 @@
+* text eol=lf
+bootstrap/exemples/whitespace.vat whitespace=-blank-at-eof,-blank-at-eol

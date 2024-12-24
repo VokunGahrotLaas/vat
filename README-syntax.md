@@ -9,8 +9,6 @@ EOF = ? end of file ?;
 
 NEWLINE = ? new line ?;
 
-W = { ? whitespace ? }
-
 NUMLIT = { _DIGIT };
 
 STRLIT = "\"" { ? any ? } "\""

@@ -35,6 +35,7 @@ void token_dtor(struct token* token)
 	{
 	case TOKEN_ERROR: FALLTHROUGH;
 	case TOKEN_NEWLINE: FALLTHROUGH;
+	case TOKEN_WHITESPACE: FALLTHROUGH;
 	case TOKEN_EOF: FALLTHROUGH;
 	case TOKEN_SEMICOLON: FALLTHROUGH;
 	case TOKEN_LPAREN: FALLTHROUGH;
@@ -60,9 +61,10 @@ void token_print(struct token* token, FILE* stream)
 	}
 	switch (token->type)
 	{
-	case TOKEN_ERROR: fputs("<ERROR>", stream); break;
+	case TOKEN_ERROR: fputs("<error>", stream); break;
 	case TOKEN_EOF: fputs("<EOF>", stream); break;
-	case TOKEN_NEWLINE: fputs("<NEWLINE>", stream); break;
+	case TOKEN_NEWLINE: fputs("<newline>", stream); break;
+	case TOKEN_WHITESPACE: fputs("<whitespace>", stream); break;
 	case TOKEN_SEMICOLON: fputc(';', stream); break;
 	case TOKEN_LPAREN: fputc('(', stream); break;
 	case TOKEN_RPAREN: fputc(')', stream); break;
@@ -89,6 +91,7 @@ void token_type_print(enum token_type type, FILE* stream)
 	case TOKEN_ERROR: fputs("error", stream); break;
 	case TOKEN_EOF: fputs("EOF", stream); break;
 	case TOKEN_NEWLINE: fputs("newline", stream); break;
+	case TOKEN_WHITESPACE: fputs("whitespace", stream); break;
 	case TOKEN_SEMICOLON: fputc(';', stream); break;
 	case TOKEN_LPAREN: fputc('(', stream); break;
 	case TOKEN_RPAREN: fputc(')', stream); break;

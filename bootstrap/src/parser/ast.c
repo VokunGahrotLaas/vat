@@ -3,7 +3,7 @@
 // libc
 #include <stdlib.h>
 
-static inline void ast_print_newline_indent(FILE* stream, size_t indent);
+static inline void ast_print_indent(FILE* stream, size_t indent);
 static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent);
 
 struct ast* ast_init(enum ast_type type, struct loc const* loc)
@@ -82,9 +82,8 @@ bool seq_push(struct ast* seq, struct ast* ast)
 	return true;
 }
 
-static inline void ast_print_newline_indent(FILE* stream, size_t indent)
+static inline void ast_print_indent(FILE* stream, size_t indent)
 {
-	fputc('\n', stream);
 	for (size_t i = 0; i < indent; ++i)
 		fputc('\t', stream);
 }
@@ -129,9 +128,9 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		struct list* list = &ast->value.seq.list;
 		for (size_t i = 0; i < list->size; ++i)
 		{
-			ast_print_newline_indent(stream, indent);
+			ast_print_indent(stream, indent);
 			ast_print_impl(*LIST_GET(list, struct ast*, i), stream, indent);
-			fputc(';', stream);
+			fputs(";\n", stream);
 		}
 		break;
 	}

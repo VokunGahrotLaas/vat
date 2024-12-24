@@ -13,23 +13,24 @@ enum token_type
 	// value: none
 	TOKEN_ERROR = 1 << 0,
 	TOKEN_NEWLINE = 1 << 1,
-	TOKEN_EOF = 1 << 2,
+	TOKEN_WHITESPACE = 1 << 2,
+	TOKEN_EOF = 1 << 3,
 	/// punct
-	TOKEN_SEMICOLON = 1 << 3,
-	TOKEN_LPAREN = 1 << 4,
-	TOKEN_RPAREN = 1 << 5,
-	TOKEN_PLUS = 1 << 6,
-	TOKEN_MINUS = 1 << 7,
-	TOKEN_EQUAL = 1 << 8,
-	TOKEN_COLON = 1 << 9,
-	TOKEN_COMA = 1 << 10,
+	TOKEN_SEMICOLON = 1 << 4,
+	TOKEN_LPAREN = 1 << 5,
+	TOKEN_RPAREN = 1 << 6,
+	TOKEN_PLUS = 1 << 7,
+	TOKEN_MINUS = 1 << 8,
+	TOKEN_EQUAL = 1 << 9,
+	TOKEN_COLON = 1 << 10,
+	TOKEN_COMA = 1 << 11,
 	// words
-	TOKEN_LET = 1 << 11,
+	TOKEN_LET = 1 << 12,
 	// value: str
-	TOKEN_WORD = 1 << 12,
-	TOKEN_STRLIT = 1 << 13,
+	TOKEN_WORD = 1 << 13,
+	TOKEN_STRLIT = 1 << 14,
 	// value: u64
-	TOKEN_NUMLIT = 1 << 14,
+	TOKEN_NUMLIT = 1 << 15,
 #define TOKEN_MAX (TOKEN_NUMLIT + 1)
 };
 

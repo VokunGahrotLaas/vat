@@ -100,13 +100,20 @@ static inline bool is_op(int c)
 
 static inline void lexer_lex(struct lexer* lexer)
 {
-	while (isspace(stream_peek(&lexer->stream)) && stream_peek(&lexer->stream) != '\n')
-		stream_pop(&lexer->stream);
 	if (stream_peek(&lexer->stream) == '\n')
 	{
 		stream_pop(&lexer->stream);
 		struct loc loc = lexer_loc_ctor(lexer);
 		token_of_type(&lexer->current, &loc, TOKEN_NEWLINE);
+	}
+	else if (isspace(stream_peek(&lexer->stream)))
+	{
+		stream_pop(&lexer->stream);
+		struct loc loc = lexer_loc_ctor(lexer);
+		while (isspace(stream_peek(&lexer->stream)) && stream_peek(&lexer->stream) != '\n')
+			stream_pop(&lexer->stream);
+		lexer_loc_end(lexer, &loc);
+		token_of_type(&lexer->current, &loc, TOKEN_WHITESPACE);
 	}
 	else if (stream_peek(&lexer->stream) == EOF)
 	{
