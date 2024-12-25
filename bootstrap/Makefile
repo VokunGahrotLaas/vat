@@ -1,6 +1,6 @@
-builddir = build
 mode = debug
-asan = true
+builddir =
+asan =
 args =
 O =
 
@@ -26,6 +26,8 @@ EXPS = ${EXPS_OBJ:.c=}
 
 ifeq (${mode},debug)
 O = 0
+asan = true
+builddir = build
 CPPFLAGS += -DBOOTSTRAP_DEBUG
 CCFLAGS += -ggdb3
 LDFLAGS += -ggdb3
@@ -34,6 +36,8 @@ VATCCFLAGS += -ggdb3
 VATLDFLAGS += -ggdb3
 else ifeq (${mode},release)
 O = 2
+asan = false
+builddir = build-release
 else
 ${error invalid value for `mode`: ${mode}, should be debug or release}
 endif

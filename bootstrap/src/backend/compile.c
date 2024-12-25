@@ -10,8 +10,8 @@ bool compile_c(char const* source, char const* dest)
 {
 	char src_path[PATH_MAX];
 	char dst_path[PATH_MAX];
-	strncpy(src_path, source, PATH_MAX);
-	strncpy(dst_path, dest, PATH_MAX);
+	strncpy(src_path, source, PATH_MAX - 1);
+	strncpy(dst_path, dest, PATH_MAX - 1);
 	char* argv[] = {
 		"cc",
 		"-o",
@@ -41,7 +41,7 @@ bool compile_c(char const* source, char const* dest)
 bool run(char const* file)
 {
 	char path[PATH_MAX];
-	strncpy(path, file, PATH_MAX);
+	strncpy(path, file, PATH_MAX - 1);
 	char* argv[] = { path };
 	int pid = fork();
 	if (pid < 0)

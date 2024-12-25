@@ -51,11 +51,14 @@ int main(int argc, char** argv)
 	enum main_state state = MAIN_NONE;
 	enum backend backend = BACKEND_NONE;
 	struct vbackend vbackend[] = {
+		[BACKEND_NONE] = {
+			.transpile = &transpile_c,
+			.compile = &compile_c,
+		},
 		[BACKEND_C] = {
 			.transpile = &transpile_c,
 			.compile = &compile_c,
 		},
-		[BACKEND_NONE] = vbackend[BACKEND_C],
 	};
 
 	struct option l_opt[] = {

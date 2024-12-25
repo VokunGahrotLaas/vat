@@ -1,8 +1,8 @@
 #~# Project
 
 vat
-!lib/include/vat
 build
+build-*
 compile_flags.txt
 .gdb_history
 .cache
