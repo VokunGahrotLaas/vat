@@ -1,7 +1,7 @@
 #pragma once
 
 // bootstrap
-#include "stream/location.h"
+#include "lexer/location.h"
 #include "utils/list.h"
 #include "utils/str.h"
 
@@ -86,9 +86,11 @@ struct ast_ret
 	struct ast* exp;
 };
 
+struct type;
+
 struct ast
 {
-	enum ast_type type;
+	enum ast_type ast_type;
 	struct loc loc;
 	union ast_value
 	{
@@ -103,6 +105,7 @@ struct ast
 		struct ast_fndec fndec;
 		struct ast_ret ret;
 	} value;
+	// struct type* type;
 };
 
 struct ast* ast_init(enum ast_type type, struct loc const* loc);

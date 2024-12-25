@@ -11,14 +11,14 @@ struct ast* ast_init(enum ast_type type, struct loc const* loc)
 	struct ast* ast = calloc(1, sizeof(*ast));
 	if (!ast) return NULL;
 	ast->loc = loc ? *loc : LOC_INVALID;
-	ast->type = type;
+	ast->ast_type = type;
 	return ast;
 }
 
 void ast_free(struct ast* ast)
 {
 	if (!ast) return;
-	switch (ast->type)
+	switch (ast->ast_type)
 	{
 	case AST_ERROR: break;
 	case AST_NUMLIT: break;
@@ -72,7 +72,7 @@ void unary_print(enum unary_type type, FILE* stream)
 
 bool seq_push(struct ast* seq, struct ast* ast)
 {
-	if (ast->type != AST_SEQ) return list_push_move(&seq->value.seq.list, &ast);
+	if (ast->ast_type != AST_SEQ) return list_push_move(&seq->value.seq.list, &ast);
 	struct list* dest = &seq->value.seq.list;
 	struct list* src = &ast->value.seq.list;
 	if (!list_reserve(dest, dest->size + src->size))
@@ -106,7 +106,7 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		fputs("<NULL>", stream);
 		return;
 	}
-	switch (ast->type)
+	switch (ast->ast_type)
 	{
 	case AST_ERROR:
 		fputs("@error(", stream);
@@ -184,7 +184,7 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 			fputs(" -> ", stream);
 			ast_print_impl(fndec->texp, stream, indent);
 		}
-		if (fndec->exp->type == AST_SEQ)
+		if (fndec->exp->ast_type == AST_SEQ)
 		{
 			fputs(" {\n", stream);
 			ast_print_impl(fndec->exp, stream, indent + 1);

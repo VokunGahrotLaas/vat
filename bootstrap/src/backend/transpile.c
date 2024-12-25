@@ -1,4 +1,4 @@
-#include "transpile/transpile.h"
+#include "backend/transpile.h"
 
 static inline void transpile_c_newline_indent(FILE* stream, size_t indent);
 
@@ -28,7 +28,7 @@ static inline void transpile_c_newline_indent(FILE* stream, size_t indent)
 
 static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 {
-	switch (ast->type)
+	switch (ast->ast_type)
 	{
 	case AST_ERROR: UNREACHABLE();
 	case AST_NUMLIT: fprintf(stream, "%" PRIu64, ast->value.numlit.u64); break;
@@ -100,7 +100,7 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 			if (!transpile_c_ast(texp, stream, indent)) return false;
 		}
 		fputs(") ", stream);
-		if (fndec->exp->type == AST_SEQ)
+		if (fndec->exp->ast_type == AST_SEQ)
 		{
 			fputc('{', stream);
 			transpile_c_ast(fndec->exp, stream, indent + 1);

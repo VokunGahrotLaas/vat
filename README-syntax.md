@@ -93,17 +93,19 @@ ops =
 
 ## Finished
 
+* functions
+
 ## Current tasks
 
 * arithmetic operators
 * basic types
-* functions
 
 ## TODO
 
 * pointers
 * structs
 * tagged unions
+* defer
 * attributes (c\_name)
 * external
 * modules

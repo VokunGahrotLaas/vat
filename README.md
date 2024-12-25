@@ -23,11 +23,12 @@ See [Syntax](./README-Syntax.md)
 * bootstrap vatc in C
   * writing syntax
   * implementing syntax
+  * name binder
+  * type checker
 
 ## TODO
 
 * bootstrap vatc in C
-  * type checker ?
   * tests
 * vatc in vat
   * lexer

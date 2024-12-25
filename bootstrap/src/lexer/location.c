@@ -1,4 +1,4 @@
-#include "stream/location.h"
+#include "lexer/location.h"
 
 void loc_print(struct loc const* loc, FILE* stream)
 {

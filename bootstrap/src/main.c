@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <unistd.h>
 // bootstrap
-#include "compile/compile.h"
+#include "backend/compile.h"
+#include "backend/transpile.h"
 #include "parser/parser.h"
-#include "transpile/transpile.h"
 
 enum main_state
 {

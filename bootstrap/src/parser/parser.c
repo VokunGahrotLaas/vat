@@ -96,7 +96,7 @@ static inline struct ast* parser_parse_program(struct parser* parser)
 	while (lexer_peek(&parser->lexer).type & ~TOKEN_EOF)
 	{
 		struct ast* statements = parser_parse_statements(parser);
-		if (statements->type == AST_ERROR) parser_skip_except(parser, TOKEN_NEWLINE);
+		if (statements->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_NEWLINE);
 		seq_push(ast, statements);
 		parser_pop_token(parser, TOKEN_NEWLINE | TOKEN_EOF);
 	}
@@ -114,7 +114,7 @@ static inline struct ast* parser_parse_statements(struct parser* parser)
 	while (lexer_peek(&parser->lexer).type & ~(TOKEN_EOF | TOKEN_NEWLINE | TOKEN_RCURLBRA))
 	{
 		struct ast* statement = parser_parse_statement(parser);
-		if (statement->type == AST_ERROR) parser_skip_except(parser, TOKEN_NEWLINE | TOKEN_RCURLBRA);
+		if (statement->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_NEWLINE | TOKEN_RCURLBRA);
 		seq_push(ast, statement);
 		parser_skip(parser, TOKEN_WHITESPACE);
 	}
@@ -147,7 +147,7 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 		statement = parser_parse_sexp(parser);
 	else
 		UNREACHABLE();
-	if (statement->type == AST_ERROR)
+	if (statement->ast_type == AST_ERROR)
 	{
 		parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 		parser_pop_token(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
@@ -184,7 +184,7 @@ static inline struct ast* parser_parse_sexp(struct parser* parser)
 {
 	struct ast* exp = parser_parse_exp(parser);
 	parser_skip_whitespace(parser);
-	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	if (exp->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 	parser_pop_token(parser, TOKEN_SEMICOLON);
 	struct ast* sexp = ast_init(AST_SEXP, &exp->loc);
 	sexp->value.sexp.exp = exp;
@@ -245,7 +245,7 @@ static inline struct ast* parser_parse_ops(struct parser* parser)
 		// not sure if i should prioritize error detection for missing RPAREN and skip to RPAREN | NEWLINE
 		// of this solution that skips to RPAREN in case of an error inside parens
 		// TODO: find a way to cover both cases
-		if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_RPAREN);
+		if (exp->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_RPAREN);
 		parser_skip_whitespace(parser);
 		parser_pop_token(parser, TOKEN_RPAREN);
 		return exp;
@@ -285,7 +285,7 @@ static inline struct ast* parser_parse_vardec(struct parser* parser)
 	}
 	struct ast* exp = parser_parse_exp(parser);
 	parser_skip_whitespace(parser);
-	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	if (exp->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 	parser_pop_token(parser, TOKEN_SEMICOLON);
 	loc = LOC(loc, exp->loc);
 	struct ast* vardec = ast_init(AST_VARDEC, &loc);
@@ -377,7 +377,7 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 		while (lexer_peek(&parser->lexer).type & ~(TOKEN_RCURLBRA | TOKEN_EOF))
 		{
 			struct ast* statements = parser_parse_statements(parser);
-			if (statements->type == AST_ERROR) parser_skip_except(parser, TOKEN_RCURLBRA | TOKEN_NEWLINE);
+			if (statements->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_RCURLBRA | TOKEN_NEWLINE);
 			seq_push(seq, statements);
 			parser_skip(parser, TOKEN_WHITESPACE);
 			if (lexer_peek(&parser->lexer).type == TOKEN_NEWLINE) lexer_pop(&parser->lexer);
@@ -407,7 +407,7 @@ static inline struct ast* parser_parse_ret(struct parser* parser)
 	parser_skip_whitespace(parser);
 	struct ast* exp = parser_parse_exp(parser);
 	parser_skip_whitespace(parser);
-	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	if (exp->ast_type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 	parser_pop_token(parser, TOKEN_SEMICOLON);
 	loc = LOC(loc, exp->loc);
 	struct ast* assign = ast_init(AST_RET, &loc);

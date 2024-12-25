@@ -1,8 +1,8 @@
 #pragma once
 
 // bootstrap
+#include "lexer/stream.h"
 #include "lexer/token.h"
-#include "stream/stream.h"
 
 enum lexer_state
 {

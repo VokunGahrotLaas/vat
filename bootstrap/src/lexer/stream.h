@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 // bootstrap
-#include "stream/location.h"
+#include "lexer/location.h"
 
 struct stream
 {

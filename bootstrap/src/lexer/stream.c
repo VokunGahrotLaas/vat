@@ -1,4 +1,4 @@
-#include "stream/stream.h"
+#include "lexer/stream.h"
 
 bool stream_from_file(struct stream* stream, char const* filename)
 {

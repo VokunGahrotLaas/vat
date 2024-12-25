@@ -3,7 +3,7 @@
 // libc
 #include <stdio.h>
 // bootstrap
-#include "stream/location.h"
+#include "lexer/location.h"
 #include "utils/str.h"
 
 enum token_type
