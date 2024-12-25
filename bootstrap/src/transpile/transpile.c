@@ -49,10 +49,13 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 			transpile_c_newline_indent(stream, indent);
 			struct ast* exp = *LIST_GET(list, struct ast*, i);
 			if (!transpile_c_ast(exp, stream, indent)) return false;
-			if (exp->type != AST_FNDEC) fputc(';', stream);
 		}
 		break;
 	}
+	case AST_SEXP:
+		transpile_c_ast(ast->value.sexp.exp, stream, indent);
+		fputc(';', stream);
+		break;
 	case AST_CALL:
 		transpile_c_ast(ast->value.call.fun, stream, indent);
 		fputc('(', stream);
@@ -74,6 +77,7 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 		transpile_c_ast(vardec->name, stream, indent);
 		fputs(" = ", stream);
 		transpile_c_ast(vardec->exp, stream, indent);
+		fputc(';', stream);
 		break;
 	}
 	case AST_FNDEC: {
@@ -108,7 +112,6 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 			fputc('{', stream);
 			transpile_c_newline_indent(stream, indent + 1);
 			transpile_c_ast(fndec->exp, stream, indent + 1);
-			if (fndec->exp->type != AST_FNDEC) fputc(';', stream);
 			transpile_c_newline_indent(stream, indent);
 			fputc('}', stream);
 		}
@@ -117,6 +120,7 @@ static inline bool transpile_c_ast(struct ast* ast, FILE* stream, size_t indent)
 	case AST_RET:
 		fputs("return ", stream);
 		transpile_c_ast(ast->value.ret.exp, stream, indent);
+		fputc(';', stream);
 		break;
 	};
 	return true;

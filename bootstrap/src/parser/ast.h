@@ -16,6 +16,7 @@ enum ast_type
 	AST_CALL,
 	// statements
 	AST_SEQ,
+	AST_SEXP,
 	AST_VARDEC,
 	AST_FNDEC,
 	AST_RET,
@@ -59,6 +60,11 @@ struct ast_seq
 	struct list list;
 };
 
+struct ast_sexp
+{
+	struct ast* exp;
+};
+
 struct ast_vardec
 {
 	struct ast* name;
@@ -92,6 +98,7 @@ struct ast
 		struct ast_unary unary;
 		struct ast_call call;
 		struct ast_seq seq;
+		struct ast_sexp sexp;
 		struct ast_vardec vardec;
 		struct ast_fndec fndec;
 		struct ast_ret ret;

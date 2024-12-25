@@ -51,9 +51,9 @@ all: vatc
 
 vatc: ${VATC}
 
-exemples: ${EXPS}
+exps: ${EXPS}
 
-exemples_c: ${EXPS_OBJ}
+exps_c: ${EXPS_OBJ}
 
 obj: ${OBJ}
 
@@ -61,19 +61,24 @@ bear: clean
 	mkdir -p ${builddir}
 	bear --output ${builddir}/compile_commands.json -- make obj
 
+bear_exps: clean_exps
+	mkdir -p ${builddir}/exemples
+	make exps_c
+	bear --output ${builddir}/exemples/compile_commands.json -- make exps
+
 run: ${VATC}
 	$< ${args}
 
-clean_exemples:
+clean_exps:
 	${RM} ${EXPS} ${EXPS_OBJ} ${EXPS_DEP}
 
-clean: clean_exemples
+clean: clean_exps
 	${RM} ${VATC} ${OBJ} ${DEP}
 
 mrproper: clean
 	${RM} -r ${builddir}
 
-.PHONY = all vatc exemples exemples_c obj bear run clean_exemples clean mrproper
+.PHONY = all vatc exps exps_c obj bear bear_exps run clean_exps clean mrproper
 
 ${VATC}: ${OBJ}
 	${CC} -o $@ $^ ${LDFLAGS}

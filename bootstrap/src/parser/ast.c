@@ -30,6 +30,7 @@ void ast_free(struct ast* ast)
 		list_dtor(&ast->value.call.args);
 		break;
 	case AST_SEQ: list_dtor(&ast->value.seq.list); break;
+	case AST_SEXP: ast_free(ast->value.sexp.exp); break;
 	case AST_VARDEC: {
 		struct ast_vardec* vardec = &ast->value.vardec;
 		ast_free(vardec->name);
@@ -141,13 +142,14 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 			ast_print_indent(stream, indent);
 			struct ast* exp = *LIST_GET(list, struct ast*, i);
 			ast_print_impl(exp, stream, indent);
-			if (exp->type != AST_FNDEC)
-				fputs(";\n", stream);
-			else
-				fputc('\n', stream);
+			fputc('\n', stream);
 		}
 		break;
 	}
+	case AST_SEXP:
+		ast_print_impl(ast->value.sexp.exp, stream, indent);
+		fputc(';', stream);
+		break;
 	case AST_VARDEC: {
 		struct ast_vardec* vardec = &ast->value.vardec;
 		fputs("let ", stream);
@@ -159,6 +161,7 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		}
 		fputs(" = ", stream);
 		ast_print_impl(vardec->exp, stream, indent);
+		fputc(';', stream);
 		break;
 	}
 	case AST_FNDEC: {
@@ -192,13 +195,13 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		{
 			fputc(' ', stream);
 			ast_print_impl(fndec->exp, stream, indent);
-			if (fndec->exp->type != AST_FNDEC) fputc(';', stream);
 		}
 		break;
 	}
 	case AST_RET:
 		fputs("ret ", stream);
 		ast_print_impl(ast->value.ret.exp, stream, indent);
+		fputc(';', stream);
 		break;
 	};
 }

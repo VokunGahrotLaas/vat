@@ -45,30 +45,21 @@ parse_program = { statements NEWLINE } statements EOF;
 statements = { statement };
 
 statement =
-  exp ";"
-| var_dec ";"
+  sexp
+| var_dec
 | fun_dec
-| "ret" exp ";"
+| ret
 ;
 
-var_dec = "let" lexp opt_type "=" exp;
+sexp = exp ";";
 
-opt_type =
-  empty
-| ":" texp
-;
+ret = "ret" exp ";";
 
-fun_dec = "fn" var "(" fun_args ")" opt_ret block;
+var_dec = "let" lexp [ ":" texp ] "=" exp ";";
 
-fun_args =
-  empty
-| exp opt_type { "," exp opt_type }
-;
+fun_dec = "fn" var "(" fun_args ")" [ "->" texp ] block;
 
-opt_ret =
-  empty
-| "->" texp
-;
+fun_args = [ exp [ ":" texp ] { "," exp [ ":" texp ] } ];
 
 block =
   statement
@@ -82,8 +73,10 @@ exp =
 | STRLIT
 | lexp
 | ops
-| var "(" call_args ")"
+| call_exp
 ;
+
+call_exp = var "(" [ exp { "," exp } ] ")";
 
 texp = var;
 
@@ -95,11 +88,6 @@ ops =
   "(" exp ")"
 | "+" exp
 | "-" exp
-;
-
-call_args =
-  empty
-| exp { "," exp }
 ;
 ```
 

@@ -5,6 +5,7 @@
 #define PARSER_FIRST_STATEMENT (PARSER_FIRST_EXP | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC | PARSER_FIRST_RET)
 #define PARSER_FIRST_EXP                                                                                               \
 	(PARSER_FIRST_NUMLIT | PARSER_FIRST_STRLIT | PARSER_FIRST_VAR | PARSER_FIRST_OPS | PARSER_FIRST_CALL)
+#define PARSER_FIRST_SEXP (PARSER_FIRST_EXP)
 #define PARSER_FIRST_NUMLIT (TOKEN_NUMLIT)
 #define PARSER_FIRST_STRLIT (TOKEN_STRLIT)
 #define PARSER_FIRST_VAR (TOKEN_WORD)
@@ -25,6 +26,7 @@ static inline struct ast* parser_parse_program(struct parser* parser);
 static inline struct ast* parser_parse_statements(struct parser* parser);
 static inline struct ast* parser_parse_statement(struct parser* parser);
 static inline struct ast* parser_parse_exp(struct parser* parser);
+static inline struct ast* parser_parse_sexp(struct parser* parser);
 static inline struct ast* parser_parse_numlit(struct parser* parser);
 static inline struct ast* parser_parse_strlit(struct parser* parser);
 static inline struct ast* parser_parse_var(struct parser* parser);
@@ -122,12 +124,12 @@ static inline struct ast* parser_parse_statements(struct parser* parser)
 
 static inline struct ast* parser_parse_statement(struct parser* parser)
 {
-	DBG_ASSERT((PARSER_FIRST_EXP | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC | PARSER_FIRST_RET)
+	DBG_ASSERT((PARSER_FIRST_SEXP | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC | PARSER_FIRST_RET)
 				   == PARSER_FIRST_STATEMENT
 			   && "parser_parse_statement: missing case in parser");
-	DBG_ASSERT((PARSER_FIRST_EXP & PARSER_FIRST_VARDEC) == 0 && "parser_parse_statement: invalid case in parser");
-	DBG_ASSERT((PARSER_FIRST_EXP & PARSER_FIRST_FNDEC) == 0 && "parser_parse_statement: invalid case in parser");
-	DBG_ASSERT((PARSER_FIRST_EXP & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
+	DBG_ASSERT((PARSER_FIRST_SEXP & PARSER_FIRST_VARDEC) == 0 && "parser_parse_statement: invalid case in parser");
+	DBG_ASSERT((PARSER_FIRST_SEXP & PARSER_FIRST_FNDEC) == 0 && "parser_parse_statement: invalid case in parser");
+	DBG_ASSERT((PARSER_FIRST_SEXP & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_VARDEC & PARSER_FIRST_FNDEC) == 0 && "parser_parse_statement: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_VARDEC & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_FNDEC & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
@@ -141,19 +143,14 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 		statement = parser_parse_fndec(parser);
 	else if (token.type & PARSER_FIRST_RET)
 		statement = parser_parse_ret(parser);
-	else if (token.type & PARSER_FIRST_EXP)
-		statement = parser_parse_exp(parser);
+	else if (token.type & PARSER_FIRST_SEXP)
+		statement = parser_parse_sexp(parser);
 	else
 		UNREACHABLE();
 	if (statement->type == AST_ERROR)
 	{
 		parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 		parser_pop_token(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
-	}
-	else if (statement->type != AST_FNDEC)
-	{
-		parser_skip_whitespace(parser);
-		parser_pop_token(parser, TOKEN_SEMICOLON);
 	}
 	return statement;
 }
@@ -181,6 +178,17 @@ static inline struct ast* parser_parse_exp(struct parser* parser)
 		return parser_parse_call(parser, var);
 	}
 	UNREACHABLE();
+}
+
+static inline struct ast* parser_parse_sexp(struct parser* parser)
+{
+	struct ast* exp = parser_parse_exp(parser);
+	parser_skip_whitespace(parser);
+	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	parser_pop_token(parser, TOKEN_SEMICOLON);
+	struct ast* sexp = ast_init(AST_SEXP, &exp->loc);
+	sexp->value.sexp.exp = exp;
+	return sexp;
 }
 
 static inline struct ast* parser_parse_numlit(struct parser* parser)
@@ -276,6 +284,9 @@ static inline struct ast* parser_parse_vardec(struct parser* parser)
 		parser_pop_token(parser, TOKEN_EQUAL);
 	}
 	struct ast* exp = parser_parse_exp(parser);
+	parser_skip_whitespace(parser);
+	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	parser_pop_token(parser, TOKEN_SEMICOLON);
 	loc = LOC(loc, exp->loc);
 	struct ast* vardec = ast_init(AST_VARDEC, &loc);
 	vardec->value.vardec.name = name;
@@ -395,6 +406,9 @@ static inline struct ast* parser_parse_ret(struct parser* parser)
 	if (!parser_pop_token(parser, TOKEN_RET)) return ast_init(AST_ERROR, &loc);
 	parser_skip_whitespace(parser);
 	struct ast* exp = parser_parse_exp(parser);
+	parser_skip_whitespace(parser);
+	if (exp->type == AST_ERROR) parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
+	parser_pop_token(parser, TOKEN_SEMICOLON);
 	loc = LOC(loc, exp->loc);
 	struct ast* assign = ast_init(AST_RET, &loc);
 	assign->value.ret.exp = exp;
