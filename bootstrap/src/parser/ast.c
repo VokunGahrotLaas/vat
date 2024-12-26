@@ -119,7 +119,11 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		cv_print(cv_str(&ast->value.strlit.str), stream);
 		fputc('"', stream);
 		break;
-	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
+	case AST_WORD:
+		cv_print(cv_str(&ast->value.word.str), stream);
+		if (ast->value.word.dec == NULL) break;
+		fprintf(stream, " /* %p */", (void*)ast->value.word.dec);
+		break;
 	case AST_CALL:
 		ast_print(ast->value.call.fun, stream);
 		fputc('(', stream);

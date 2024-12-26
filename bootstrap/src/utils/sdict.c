@@ -19,31 +19,53 @@ bool sdict_copy(struct sdict* sdict, struct sdict const* other)
 
 bool sdict_scope_begin(struct sdict* sdict)
 {
+#ifdef BOOTSTRAP_LOG_SDICT
+	fprintf(stderr, "scope_begin(%zu)\n", sdict->scopes.size + 1);
+#endif
 	struct dict scope;
-	if (!dict_ctor(&scope, LIST_FRONT(&sdict->scopes, struct dict)->vdict, sdict->size_hint)) return false;
+	if (!dict_ctor(&scope, LIST_CFRONT(&sdict->scopes, struct dict)->vdict, sdict->size_hint)) return false;
 	return list_push_move(&sdict->scopes, &scope);
 }
 
 bool sdict_scope_end(struct sdict* sdict)
 {
+#ifdef BOOTSTRAP_LOG_SDICT
+	struct dict const* scope = LIST_CBACK(&sdict->scopes, struct dict);
+	fprintf(stderr, "scope_end(%zu) => size %zu\n", sdict->scopes.size, scope->size);
+#endif
 	if (sdict->scopes.size <= 1) return false;
 	return list_pop(&sdict->scopes);
 }
 
 struct pair* sdict_add_copy(struct sdict* sdict, pair_key_t const* key, pair_val_t const* value)
 {
+#ifdef BOOTSTRAP_LOG_SDICT
+	fprintf(stderr, "sadd_copy(%zu, ", sdict->scopes.size);
+	vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+	fputs(")\n", stderr);
+#endif
 	struct dict* scope = LIST_BACK(&sdict->scopes, struct dict);
 	return dict_add_copy(scope, key, value);
 }
 
 struct pair* sdict_add_move(struct sdict* sdict, pair_key_t* key, pair_val_t* value)
 {
+#ifdef BOOTSTRAP_LOG_SDICT
+	fprintf(stderr, "sadd_move(%zu, ", sdict->scopes.size);
+	vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+	fputs(")\n", stderr);
+#endif
 	struct dict* scope = LIST_BACK(&sdict->scopes, struct dict);
 	return dict_add_move(scope, key, value);
 }
 
 bool sdict_remove(struct sdict* sdict, pair_key_t const* key)
 {
+#ifdef BOOTSTRAP_LOG_SDICT
+	fprintf(stderr, "sremove(%zu, ", sdict->scopes.size);
+	vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+	fputs(")\n", stderr);
+#endif
 	struct dict* scope = LIST_BACK(&sdict->scopes, struct dict);
 	return dict_remove(scope, key);
 }
@@ -52,12 +74,31 @@ struct pair* sdict_find(struct sdict* sdict, pair_key_t const* key) { return (st
 
 struct pair const* sdict_cfind(struct sdict const* sdict, pair_key_t const* key)
 {
+	uint64_t h = dict_hash(LIST_CFRONT(&sdict->scopes, struct dict), key);
 	for (size_t i = 0; i < sdict->scopes.size; ++i)
 	{
 		size_t idx = sdict->scopes.size - i - 1;
+#ifdef BOOTSTRAP_LOG_SDICT
+		fprintf(stderr, "sfind(%zu, ", sdict->scopes.size);
+		vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+		fprintf(stderr, ") => try at %zu\n", idx);
+#endif
 		struct dict const* scope = LIST_CGET(&sdict->scopes, struct dict, idx);
-		struct pair const* pair = dict_cfind(scope, key);
-		if (pair) return pair;
+		struct pair const* pair = dict_chfind(scope, key, h);
+		if (pair)
+		{
+#ifdef BOOTSTRAP_LOG_SDICT
+			fprintf(stderr, "sfind(%zu, ", sdict->scopes.size);
+			vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+			fprintf(stderr, ") => found at %zu\n", idx);
+#endif
+			return pair;
+		}
 	}
+#ifdef BOOTSTRAP_LOG_SDICT
+	fprintf(stderr, "sfind(%zu, ", sdict->scopes.size);
+	vprint(&LIST_CFRONT(&sdict->scopes, struct dict)->vdict->vpair.vkey, key, stderr);
+	fputs(") => not found\n", stderr);
+#endif
 	return NULL;
 }

@@ -92,7 +92,7 @@ static inline struct ast* parser_parse_program(struct parser* parser)
 {
 	struct loc loc = lexer_peek(&parser->lexer).loc;
 	struct ast* ast = ast_init(AST_SEQ, &loc);
-	list_ctor(&ast->value.seq.list, &vlist_past, 16);
+	list_ctor(&ast->value.seq.list, &vlist_upast, 16);
 	while (lexer_peek(&parser->lexer).type & ~TOKEN_EOF)
 	{
 		struct ast* statements = parser_parse_statements(parser);
@@ -109,7 +109,7 @@ static inline struct ast* parser_parse_statements(struct parser* parser)
 {
 	struct token token = lexer_peek(&parser->lexer);
 	struct ast* ast = ast_init(AST_SEQ, &token.loc);
-	list_ctor(&ast->value.seq.list, &vlist_past, 16);
+	list_ctor(&ast->value.seq.list, &vlist_upast, 16);
 	parser_skip(parser, TOKEN_WHITESPACE);
 	while (lexer_peek(&parser->lexer).type & ~(TOKEN_EOF | TOKEN_NEWLINE | TOKEN_RCURLBRA))
 	{
@@ -223,6 +223,7 @@ static inline struct ast* parser_parse_var(struct parser* parser)
 	lexer_pop(&parser->lexer);
 	struct ast* word = ast_init(AST_WORD, &token.loc);
 	vmove(&vtype_str, &word->value.word.str, &token.val.str);
+	word->value.word.dec = NULL;
 	token_dtor(&token);
 	return word;
 }
@@ -306,7 +307,7 @@ static inline struct ast* parser_parse_call(struct parser* parser, struct ast* l
 	parser_skip_whitespace(parser);
 	parser_pop_token(parser, TOKEN_LPAREN);
 	struct list args;
-	list_ctor(&args, &vlist_past, 16);
+	list_ctor(&args, &vlist_upast, 16);
 	parser_skip_whitespace(parser);
 	while (lexer_peek(&parser->lexer).type & ~(TOKEN_RPAREN | TOKEN_EOF))
 	{
@@ -337,8 +338,8 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 	parser_skip_whitespace(parser);
 	struct list args;
 	struct list targs;
-	list_ctor(&args, &vlist_past, 16);
-	list_ctor(&targs, &vlist_past, 16);
+	list_ctor(&args, &vlist_upast, 16);
+	list_ctor(&targs, &vlist_upast, 16);
 	while (lexer_peek(&parser->lexer).type & ~(TOKEN_RPAREN | TOKEN_EOF))
 	{
 		struct ast* targ = NULL;
@@ -373,7 +374,7 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 		struct loc loc = token.loc;
 		parser_skip_whitespace(parser);
 		struct ast* seq = ast_init(AST_SEQ, &loc);
-		list_ctor(&seq->value.seq.list, &vlist_past, 16);
+		list_ctor(&seq->value.seq.list, &vlist_upast, 16);
 		while (lexer_peek(&parser->lexer).type & ~(TOKEN_RCURLBRA | TOKEN_EOF))
 		{
 			struct ast* statements = parser_parse_statements(parser);

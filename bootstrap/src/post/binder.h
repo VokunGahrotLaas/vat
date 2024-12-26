@@ -2,9 +2,11 @@
 
 // bootstrap
 #include "parser/ast.h"
+#include "utils/sdict.h"
 
 struct binder
 {
+	struct sdict vars;
 	bool error;
 };
 

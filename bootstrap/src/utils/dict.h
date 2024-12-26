@@ -35,8 +35,11 @@ struct pair* dict_add_move(struct dict* dict, pair_key_t* key, pair_val_t* value
 bool dict_remove(struct dict* dict, pair_key_t const* key);
 struct pair* dict_find(struct dict* dict, pair_key_t const* key);
 struct pair const* dict_cfind(struct dict const* dict, pair_key_t const* key);
+struct pair* dict_hfind(struct dict* dict, pair_key_t const* key, uint64_t h);
+struct pair const* dict_chfind(struct dict const* dict, pair_key_t const* key, uint64_t h);
+uint64_t dict_hash(struct dict const* dict, pair_key_t const* key);
 
 // impl
 
-VTYPE(vtype_dict, struct dict, &dict_dtor, &dict_copy, NULL, NULL, NULL);
+VTYPE(vtype_dict, struct dict, &dict_dtor, &dict_copy, NULL, NULL, NULL, NULL);
 VLIST(vlist_dict, struct dict, &vtype_dict);

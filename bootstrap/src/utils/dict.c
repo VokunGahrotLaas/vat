@@ -41,7 +41,7 @@ bool dict_reserve(struct dict* dict, size_t size)
 
 struct pair* dict_add_copy(struct dict* dict, pair_key_t const* key, pair_val_t const* value)
 {
-	if (!dict_reserve(dict, dict->size + 1)) return false;
+	if (!dict_reserve(dict, (dict->size + 1) * 2)) return false;
 	struct pair* pair = dict_find_new(dict, key);
 	DBG_ASSERT(pair && "could not find free pair in dict");
 	if (pair_status(pair) == PAIR_SET) return NULL;
@@ -51,7 +51,7 @@ struct pair* dict_add_copy(struct dict* dict, pair_key_t const* key, pair_val_t 
 
 struct pair* dict_add_move(struct dict* dict, pair_key_t* key, pair_val_t* value)
 {
-	if (!dict_reserve(dict, dict->size + 1)) return false;
+	if (!dict_reserve(dict, (dict->size + 1) * 2)) return false;
 	struct pair* pair = dict_find_new(dict, key);
 	DBG_ASSERT(pair && "could not find free pair in dict");
 	if (pair_status(pair) == PAIR_SET) return NULL;
@@ -71,18 +71,69 @@ struct pair* dict_find(struct dict* dict, pair_key_t const* key) { return (struc
 
 struct pair const* dict_cfind(struct dict const* dict, pair_key_t const* key)
 {
-	uint64_t h = vhash(&dict->vdict->vpair.vkey, key, HASH_SEED);
+	uint64_t h = dict_hash(dict, key);
+	return dict_chfind(dict, key, h);
+}
+
+struct pair* dict_hfind(struct dict* dict, pair_key_t const* key, uint64_t h)
+{
+	return (struct pair*)dict_chfind(dict, key, h);
+}
+
+struct pair const* dict_chfind(struct dict const* dict, pair_key_t const* key, uint64_t h)
+{
 	size_t const size = dict->pairs.size;
+#ifdef BOOTSTRAP_LOG_DICT
+	fputs("find(", stderr);
+	vprint(&dict->vdict->vpair.vkey, key, stderr);
+	fprintf(stderr, ") => size %zu hash %" PRIu64 "\n", size, h);
+#endif
 	for (size_t i = 0; i < size; ++i)
 	{
 		size_t idx = (h + (i * i + i) / 2) % size;
 		struct pair const* pair = LIST_CGET(&dict->pairs, struct pair, idx);
-		if (pair_status(pair) == PAIR_NONE) break;
-		if (pair_status(pair) == PAIR_UNSET) continue;
-		if (vcmp(&dict->vdict->vpair.vkey, pair_ckey(pair), key) != 0) continue;
+#ifdef BOOTSTRAP_LOG_DICT
+		fputs("find(", stderr);
+		vprint(&dict->vdict->vpair.vkey, key, stderr);
+		fprintf(stderr, ") => try at %zu => ", idx);
+#endif
+		if (pair_status(pair) == PAIR_NONE)
+		{
+#ifdef BOOTSTRAP_LOG_DICT
+			fputs("none\n", stderr);
+#endif
+			break;
+		}
+		if (pair_status(pair) == PAIR_UNSET)
+		{
+#ifdef BOOTSTRAP_LOG_DICT
+			fputs("unset\n", stderr);
+#endif
+			continue;
+		}
+		if (vcmp(&dict->vdict->vpair.vkey, pair_ckey(pair), key) != 0)
+		{
+#ifdef BOOTSTRAP_LOG_DICT
+			fputs("not equal\n", stderr);
+#endif
+			continue;
+		}
+#ifdef BOOTSTRAP_LOG_DICT
+		fputs("found\n", stderr);
+#endif
 		return pair;
 	}
+#ifdef BOOTSTRAP_LOG_DICT
+	fputs("find(", stderr);
+	vprint(&dict->vdict->vpair.vkey, key, stderr);
+	fputs(") => not found\n", stderr);
+#endif
 	return NULL;
+}
+
+uint64_t dict_hash(struct dict const* dict, pair_key_t const* key)
+{
+	return vhash(&dict->vdict->vpair.vkey, key, HASH_SEED);
 }
 
 static inline struct pair* dict_find_new(struct dict* dict, pair_key_t const* key)
@@ -90,18 +141,46 @@ static inline struct pair* dict_find_new(struct dict* dict, pair_key_t const* ke
 	uint64_t h = vhash(&dict->vdict->vpair.vkey, key, HASH_SEED);
 	size_t const size = dict->pairs.size;
 	struct pair* first_unset = NULL;
+#ifdef BOOTSTRAP_LOG_DICT
+	fputs("find_new(", stderr);
+	vprint(&dict->vdict->vpair.vkey, key, stderr);
+	fprintf(stderr, ") => size %zu hash %" PRIu64 "\n", size, h);
+#endif
 	for (size_t i = 0; i < size; ++i)
 	{
 		size_t idx = (h + (i * i + i) / 2) % size;
+#ifdef BOOTSTRAP_LOG_DICT
+		fputs("find_new(", stderr);
+		vprint(&dict->vdict->vpair.vkey, key, stderr);
+		fprintf(stderr, ") => try at %zu\n", idx);
+#endif
 		struct pair* pair = LIST_GET(&dict->pairs, struct pair, idx);
-		if (pair_status(pair) == PAIR_NONE) return first_unset != NULL ? first_unset : pair;
+		if (pair_status(pair) == PAIR_NONE)
+		{
+#ifdef BOOTSTRAP_LOG_DICT
+			fputs("find_new(", stderr);
+			vprint(&dict->vdict->vpair.vkey, key, stderr);
+			fprintf(stderr, ") => found at %zu\n", idx);
+#endif
+			return first_unset != NULL ? first_unset : pair;
+		}
 		if (pair_status(pair) == PAIR_UNSET)
 		{
 			if (first_unset == NULL) first_unset = pair;
 			continue;
 		}
 		if (vcmp(&dict->vdict->vpair.vkey, pair_ckey(pair), key) != 0) continue;
+#ifdef BOOTSTRAP_LOG_DICT
+		fputs("find_new(", stderr);
+		vprint(&dict->vdict->vpair.vkey, key, stderr);
+		fprintf(stderr, ") => found at %zu\n", idx);
+#endif
 		return pair;
 	}
+#ifdef BOOTSTRAP_LOG_DICT
+	fputs("find_new(", stderr);
+	vprint(&dict->vdict->vpair.vkey, key, stderr);
+	fputs(") => not found\n", stderr);
+#endif
 	return first_unset;
 }

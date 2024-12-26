@@ -6,6 +6,8 @@ uint64_t cv_hash_(struct cv const* cv, uint64_t seed) { return cv_hash(*cv, seed
 
 enum cmp_result cv_cmp_(struct cv const* cv, struct cv const* other) { return cv_cmp(*cv, *other); }
 
+void cv_print_(struct cv const* cv, FILE* stream) { cv_print(*cv, stream); }
+
 void str_dtor(struct str* str)
 {
 	if (str->data != NULL && str->data != str_empty_impl) free(str->data);
@@ -18,3 +20,5 @@ bool str_copy(struct str* str, struct str const* other) { return str_of_cv(str, 
 uint64_t str_hash(struct str const* str, uint64_t seed) { return cv_hash(cv_str(str), seed); }
 
 enum cmp_result str_cmp(struct str const* str, struct str const* other) { return cv_cmp(cv_str(str), cv_str(other)); }
+
+void str_print(struct str const* str, FILE* stream) { cv_print(cv_str(str), stream); }

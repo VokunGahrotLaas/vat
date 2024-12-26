@@ -25,5 +25,5 @@ struct pair const* sdict_cfind(struct sdict const* sdict, pair_key_t const* key)
 
 // impl
 
-VTYPE(vtype_sdict, struct sdict, &sdict_dtor, &sdict_copy, NULL, NULL, NULL);
+VTYPE(vtype_sdict, struct sdict, &sdict_dtor, &sdict_copy, NULL, NULL, NULL, NULL);
 VLIST(vlist_sdict, struct sdict, &vtype_sdict);

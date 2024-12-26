@@ -75,7 +75,7 @@ bool list_reserve(struct list* list, size_t capacity)
 	}
 	list->data = ptr;
 	list->capacity = new_capacity;
-	memset(data + list->capacity, 0, list->vlist->vtype.size);
+	memset(data + list->capacity * list->vlist->vtype.size, 0, list->vlist->vtype.size);
 	return true;
 }
 

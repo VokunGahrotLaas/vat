@@ -31,3 +31,4 @@
 #define CAT(A, B) A##B
 #define CATX(A, B) CAT(A, B)
 #define ALIGN(Offset, Align) ((Offset) + ((Offset) % (Align) == 0 ? 0 : (Align) - (Offset) % (Align)))
+#define ARR_SIZE(A) (sizeof(A) / sizeof(*A))

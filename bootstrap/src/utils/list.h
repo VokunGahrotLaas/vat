@@ -53,7 +53,7 @@ static inline void const* list_cback(struct list const* list);
 
 // impl
 
-VTYPE(vtype_list, struct list, &list_dtor, &list_copy, NULL, &list_cmp, &list_hash);
+VTYPE(vtype_list, struct list, &list_dtor, &list_copy, NULL, &list_cmp, &list_hash, NULL);
 VLIST(vlist_list, struct list, &vtype_list);
 
 static inline void* list_get(struct list* list, size_t idx)

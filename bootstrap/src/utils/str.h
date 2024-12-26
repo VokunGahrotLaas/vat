@@ -32,9 +32,11 @@ static inline struct cv cv_sub(struct cv cv, size_t offset, size_t size);
 static inline void cv_print(struct cv cv, FILE* stream);
 static inline uint64_t cv_hash(struct cv cv, uint64_t seed);
 static inline enum cmp_result cv_cmp(struct cv lhs, struct cv rhs);
+static inline void cv_print(struct cv cv, FILE* stream);
 
 uint64_t cv_hash_(struct cv const* cv, uint64_t seed);
 enum cmp_result cv_cmp_(struct cv const* cv, struct cv const* other);
+void cv_print_(struct cv const* cv, FILE* stream);
 
 static inline bool str_ctor(struct str* str, size_t capacity);
 static inline bool str_of_cv(struct str* str, struct cv cv);
@@ -48,11 +50,12 @@ void str_dtor(struct str* str);
 bool str_copy(struct str* str, struct str const* other);
 uint64_t str_hash(struct str const* str, uint64_t seed);
 enum cmp_result str_cmp(struct str const* str, struct str const* other);
+void str_print(struct str const* str, FILE* stream);
 
 // impl
 
-VTYPE(vtype_cv, struct cv, NULL, NULL, NULL, &cv_cmp_, &cv_hash_);
-VTYPE(vtype_str, struct str, &str_dtor, &str_copy, NULL, &str_cmp, &str_hash);
+VTYPE(vtype_cv, struct cv, NULL, NULL, NULL, &cv_cmp_, &cv_hash_, &cv_print_);
+VTYPE(vtype_str, struct str, &str_dtor, &str_copy, NULL, &str_cmp, &str_hash, &str_print);
 
 static inline struct cv cv_str(struct str const* str)
 {

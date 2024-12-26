@@ -35,6 +35,7 @@ struct ast_strlit
 struct ast_word
 {
 	struct str str;
+	struct ast* dec;
 };
 
 enum unary_type
@@ -117,5 +118,7 @@ void unary_print(enum unary_type type, FILE* stream);
 
 bool seq_push(struct ast* seq, struct ast* ast);
 
-VTYPE(vtype_past, struct ast*, &ast_pdtor, &copy_fail, NULL, NULL, NULL);
+VTYPE(vtype_past, struct ast*, NULL, NULL, NULL, NULL, NULL, NULL);
+VTYPE(vtype_upast, struct ast*, &ast_pdtor, &copy_fail, NULL, NULL, NULL, NULL);
 VLIST(vlist_past, struct ast*, &vtype_past);
+VLIST(vlist_upast, struct ast*, &vtype_upast);

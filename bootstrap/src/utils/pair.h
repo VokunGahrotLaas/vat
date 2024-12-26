@@ -10,7 +10,7 @@
 #define PAIR_VAL_OFFSET(SizeKey, AlignKey, AlignVal)                                                                   \
 	(ALIGN(sizeof(struct pair) + PAIR_KEY_OFFSET(AlignKey) + SizeKey, AlignVal) - sizeof(struct pair))
 #define VPAIR(Name, VTypeKey, VTypeVal)                                                                                \
-	VTYPE_DYN(CATX(Name, _vtype), &pair_dtor, &pair_copy, &pair_move, NULL, NULL,                                      \
+	VTYPE_DYN(CATX(Name, _vtype), struct pair, &pair_dtor, &pair_copy, &pair_move, NULL, NULL, NULL,                   \
 			  PAIR_SIZE((VTypeKey)->size, (VTypeVal)->size, (VTypeKey)->align, (VTypeVal)->align),                     \
 			  PAIR_ALIGN((VTypeKey)->align, (VTypeVal)->align));                                                       \
 	static struct vpair const Name = {                                                                                 \

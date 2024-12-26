@@ -7,6 +7,7 @@
 #include "backend/compile.h"
 #include "backend/transpile.h"
 #include "parser/parser.h"
+#include "post/binder.h"
 #include "utils/sdict.h"
 
 enum main_state
@@ -278,6 +279,13 @@ static inline int main_parser(char const* source)
 	struct ast* ast = parser_parse(&parser);
 	int r = parser.lexer.error || parser.error ? 1 : 0;
 	parser_dtor(&parser);
+
+	struct binder binder;
+	binder_ctor(&binder);
+	binder_bind(&binder, ast);
+	if (binder.error) r = 1;
+	binder_dtor(&binder);
+
 	ast_print(ast, stdout);
 	ast_free(ast);
 	return r;
@@ -336,12 +344,14 @@ static inline int main_check(char const* source)
 	return 1;
 }
 
+void int_print(int const* i, FILE* stream);
+
+VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL, &int_print);
+VPAIR(vpair_int_int, &vtype_int, &vtype_int);
+VDICT(vdict_int_int, int, int, &vpair_int_int);
+
 static inline int main_check_dict(void)
 {
-	VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL);
-	VPAIR(vpair_int_int, &vtype_int, &vtype_int);
-	VDICT(vdict_int_int, int, int, &vpair_int_int);
-
 	struct dict dict;
 	dict_ctor(&dict, &vdict_int_int, 32);
 
@@ -385,10 +395,6 @@ static inline int main_check_dict(void)
 
 static inline int main_check_sdict(void)
 {
-	VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL);
-	VPAIR(vpair_int_int, &vtype_int, &vtype_int);
-	VDICT(vdict_int_int, int, int, &vpair_int_int);
-
 	struct sdict sdict;
 	sdict_ctor(&sdict, &vdict_int_int, 2, 32);
 
@@ -403,6 +409,9 @@ static inline int main_check_sdict(void)
 	}
 
 	bool r = sdict_scope_begin(&sdict);
+	printf("scope_begin() => %s\n", (r ? "success" : "failure"));
+
+	r = sdict_scope_begin(&sdict);
 	printf("scope_begin() => %s\n", (r ? "success" : "failure"));
 
 	for (int k = 1; k < 10; k += 2)
@@ -442,6 +451,9 @@ static inline int main_check_sdict(void)
 	r = sdict_scope_end(&sdict);
 	printf("scope_end() => %s\n", (r ? "success" : "failure"));
 
+	r = sdict_scope_end(&sdict);
+	printf("scope_end() => %s\n", (r ? "success" : "failure"));
+
 	for (int k = -1; k < 16; ++k)
 	{
 		struct pair* pair = sdict_find(&sdict, &k);
@@ -454,3 +466,5 @@ static inline int main_check_sdict(void)
 	sdict_dtor(&sdict);
 	return 0;
 }
+
+void int_print(int const* i, FILE* stream) { fprintf(stream, "%i", *i); }
