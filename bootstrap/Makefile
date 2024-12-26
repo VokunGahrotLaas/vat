@@ -5,7 +5,7 @@ args =
 O =
 
 CC = gcc
-CPPFLAGS = -MMD -MP -Isrc -D_GNU_SOURCE
+CPPFLAGS = -MMD -MP -Isrc -Ilibs/komihash -D_GNU_SOURCE
 CCFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99 -O$O
 LDFLAGS = -O$O
 

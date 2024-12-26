@@ -2,34 +2,26 @@
 
 // bootstrap
 #include "utils/utils.h"
+#include "utils/vtype.h"
 
-#define VLIST(Type, Name, Dtor, Copy, Move)                                                                            \
-	static uint8_t Name##_empty_impl[sizeof(Type)] = { 0 };                                                            \
+#define VLIST_DYN(Name, Size, VType)                                                                                   \
+	static uint8_t CATX(Name, _empty_impl)[(Size)] = { 0 };                                                            \
 	static struct vlist const Name = {                                                                                 \
-		.elem_size = sizeof(Type),                                                                                     \
-		.empty_impl = Name##_empty_impl,                                                                               \
-		.dtor = (dtor_t*)(Dtor),                                                                                       \
-		.copy = (copy_t*)(Copy),                                                                                       \
-		.move = (move_t*)(Move),                                                                                       \
+		.vtype = *(VType),                                                                                             \
+		.empty_impl = CATX(Name, _empty_impl),                                                                         \
 	}
+#define VLIST(Name, Type, VType) VLIST_DYN(Name, sizeof(Type), VType)
 #define LIST_GET(List, Type, Idx) ((Type*)list_get((List), (Idx)))
-#define LIST_GETC(List, Type, Idx) ((Type const*)list_getc((List), (Idx)))
+#define LIST_CGET(List, Type, Idx) ((Type const*)list_cget((List), (Idx)))
 #define LIST_FRONT(List, Type) ((Type*)list_front((List)))
-#define LIST_FRONTC(List, Type) ((Type const*)list_frontc((List)))
+#define LIST_CFRONT(List, Type) ((Type const*)list_cfront((List)))
 #define LIST_BACK(List, Type) ((Type*)list_back((List)))
-#define LIST_BACKC(List, Type) ((Type const*)list_backc((List)))
-
-typedef void dtor_t(void* ptr);
-typedef bool copy_t(void* ptr, void const* other);
-typedef bool move_t(void* ptr, void* other);
+#define LIST_CBACK(List, Type) ((Type const*)list_cback((List)))
 
 struct vlist
 {
-	size_t elem_size;
+	struct vtype vtype;
 	uint8_t* empty_impl;
-	dtor_t* dtor;
-	copy_t* copy;
-	move_t* move;
 };
 
 struct list
@@ -44,37 +36,40 @@ bool list_ctor(struct list* list, struct vlist const* vlist, size_t capacity);
 void list_dtor(struct list* list);
 bool list_copy(struct list* list, struct list const* other);
 bool list_move(struct list* list, struct list* other);
+enum cmp_result list_cmp(struct list const* list, struct list const* other);
+uint64_t list_hash(struct list const* list, uint64_t seed);
 
 bool list_reserve(struct list* list, size_t capacity);
 bool list_push_copy(struct list* list, void const* data);
 bool list_push_move(struct list* list, void* data);
 static inline void* list_get(struct list* list, size_t idx);
-static inline void const* list_getc(struct list const* list, size_t idx);
+static inline void const* list_cget(struct list const* list, size_t idx);
 
 static inline void* list_front(struct list* list);
-static inline void const* list_frontc(struct list const* list);
+static inline void const* list_cfront(struct list const* list);
 
 static inline void* list_back(struct list* list);
-static inline void const* list_backc(struct list const* list);
+static inline void const* list_cback(struct list const* list);
 
 bool copy_fail(UNUSED void* ptr, UNUSED void const* other);
 bool move_fail(UNUSED void* ptr, UNUSED void* other);
 
 // impl
 
-VLIST(struct list, vlist_list, &list_dtor, &list_copy, &list_move);
+VTYPE(vtype_list, struct list, &list_dtor, &list_copy, &list_move, &list_cmp, &list_hash);
+VLIST(vlist_list, struct list, &vtype_list);
 
 static inline void* list_get(struct list* list, size_t idx)
 {
 	// const cast is ok because list is non const here
 	// this is just to avoid duplicate code
-	return (void*)list_getc(list, idx);
+	return (void*)list_cget(list, idx);
 }
 
-static inline void const* list_getc(struct list const* list, size_t idx)
+static inline void const* list_cget(struct list const* list, size_t idx)
 {
 	uint8_t const* data = list->data;
-	return data + list->vlist->elem_size * idx;
+	return data + list->vlist->vtype.size * idx;
 }
 
 static inline void* list_front(struct list* list)
@@ -83,10 +78,10 @@ static inline void* list_front(struct list* list)
 	return list_get(list, 0);
 }
 
-static inline void const* list_frontc(struct list const* list)
+static inline void const* list_cfront(struct list const* list)
 {
 	DBG_ASSERT(list->size > 0 && "list_frontc: list must not be empty");
-	return list_getc(list, 0);
+	return list_cget(list, 0);
 }
 
 static inline void* list_back(struct list* list)
@@ -95,8 +90,8 @@ static inline void* list_back(struct list* list)
 	return list_get(list, list->size - 1);
 }
 
-static inline void const* list_backc(struct list const* list)
+static inline void const* list_cback(struct list const* list)
 {
 	DBG_ASSERT(list->size > 0 && "list_backc: list must not be empty");
-	return list_getc(list, list->size - 1);
+	return list_cget(list, list->size - 1);
 }

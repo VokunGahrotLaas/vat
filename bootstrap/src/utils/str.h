@@ -34,13 +34,13 @@ static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs);
 
 static inline bool str_ctor(struct str* str, size_t capacity);
 static inline bool str_of_cv(struct str* str, struct cv cv);
-static inline void str_dtor(struct str* str);
 
 static inline bool str_reserve(struct str* str, size_t capacity);
 static inline bool str_resize(struct str* str, size_t size);
 static inline bool str_pushcv(struct str* str, struct cv cv);
 static inline bool str_pushc(struct str* str, char c);
 
+void str_dtor(struct str* str);
 bool str_copy(struct str* str, struct str const* other);
 bool str_move(struct str* str, struct str* other);
 
@@ -99,13 +99,6 @@ static inline bool str_of_cv(struct str* str, struct cv cv)
 {
 	if (!str_ctor(str, cv.size)) return false;
 	return str_pushcv(str, cv);
-}
-
-static inline void str_dtor(struct str* str)
-{
-	if (str->data != NULL && str->data != str_empty_impl) free(str->data);
-	str->data = str_empty_impl;
-	str->capacity = str->size = 0;
 }
 
 static inline bool str_reserve(struct str* str, size_t capacity)

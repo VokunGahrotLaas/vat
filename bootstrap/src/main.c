@@ -7,6 +7,7 @@
 #include "backend/compile.h"
 #include "backend/transpile.h"
 #include "parser/parser.h"
+#include "utils/dict.h"
 
 enum main_state
 {
@@ -18,6 +19,7 @@ enum main_state
 	MAIN_TRANSPILE,
 	MAIN_COMPILE,
 	MAIN_RUN,
+	MAIN_CHECK,
 };
 
 enum backend
@@ -41,6 +43,7 @@ int main_parser(char const* source);
 int main_transpile_c(char const* source, char const* dest, struct vbackend* backend);
 int main_compile_c(char const* source, char const* dest, struct vbackend* backend);
 int main_run_c(char const* source, struct vbackend* backend);
+int main_check(char const* source, struct vbackend* backend);
 
 int main(int argc, char** argv)
 {
@@ -63,16 +66,17 @@ int main(int argc, char** argv)
 
 	struct option l_opt[] = {
 		{ "transpile",	   no_argument,		NULL, 't' },
-		{ "compile",		 no_argument,		  NULL, 'c' },
+		 { "compile",	  no_argument,	   NULL, 'c' },
 		{ "run",			 no_argument,		  NULL, 'r' },
-		{ "print-ast",	   no_argument,		NULL, 'A' },
+		 { "print-ast",	no_argument,		 NULL, 'A' },
 		{ "print-tokens", no_argument,	   NULL, 'T' },
+		 { "check",		no_argument,		 NULL, 'C' },
 		{ "help",		  no_argument,	   NULL, 'h' },
-		{ "output",		required_argument, NULL, 'o' },
+		 { "output",		 required_argument, NULL, 'o' },
 		{ "backend",		 required_argument, NULL, 'b' },
-		{ NULL,			0,				   NULL, 0   },
+		 { NULL,			 0,					NULL, 0	},
 	};
-	char const* s_opt = "tcrATho:b:";
+	char const* s_opt = "tcrATCho:b:";
 	int c_opt = -1;
 	while ((c_opt = getopt_long(argc, argv, s_opt, l_opt, NULL)) != -1)
 	{
@@ -141,6 +145,16 @@ int main(int argc, char** argv)
 			else
 				state = MAIN_PRINT_AST;
 		}
+		else if (c_opt == 'C')
+		{
+			if (state != MAIN_NONE && state != MAIN_CHECK)
+			{
+				state = MAIN_ERROR;
+				warnx("-C cannot be combined with other actions");
+			}
+			else
+				state = MAIN_CHECK;
+		}
 		else if (c_opt == 'T')
 		{
 			if (state != MAIN_NONE && state != MAIN_PRINT_TOKENS)
@@ -206,6 +220,7 @@ int main(int argc, char** argv)
 	case MAIN_RUN: r = main_run_c(source, &vbackend[backend]); break;
 	case MAIN_PRINT_AST: r = main_parser(source); break;
 	case MAIN_PRINT_TOKENS: r = main_lexer(source); break;
+	case MAIN_CHECK: r = main_check(source, &vbackend[backend]); break;
 	};
 
 	str_dtor(&output_str);
@@ -301,4 +316,51 @@ int main_run_c(char const* source, struct vbackend* backend)
 	r = !run(tmp_file) ? 1 : 0;
 	unlink(tmp_file);
 	return r;
+}
+
+int main_check(UNUSED char const* source, UNUSED struct vbackend* backend)
+{
+	VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL);
+	VPAIR(vpair_int_int, &vtype_int, &vtype_int);
+	VDICT(vdict_int_int, int, int, &vpair_int_int);
+
+	struct dict dict;
+	dict_ctor(&dict, &vdict_int_int, 32);
+
+	for (int k = 0; k < 10; ++k)
+	{
+		int v = k * k;
+		struct pair* pair = dict_add_copy(&dict, &k, &v);
+		if (pair != NULL)
+			printf("add(%i, %i) => {%i, %i}\n", k, v, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("add(%i, %i) => failure\n", k, v);
+	}
+
+	for (int k = -1; k < 16; ++k)
+	{
+		struct pair* pair = dict_find(&dict, &k);
+		if (pair != NULL)
+			printf("find(%i) => {%i, %i}\n", k, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("find(%i) => none\n", k);
+	}
+
+	for (int k = 4; k < 9; ++k)
+	{
+		bool r = dict_remove(&dict, &k);
+		printf("remove(%i) => %s\n", k, (r ? "success" : "failure"));
+	}
+
+	for (int k = -1; k < 16; ++k)
+	{
+		struct pair* pair = dict_find(&dict, &k);
+		if (pair != NULL)
+			printf("find(%i) => {%i, %i}\n", k, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("find(%i) => none\n", k);
+	}
+
+	dict_dtor(&dict);
+	return 0;
 }

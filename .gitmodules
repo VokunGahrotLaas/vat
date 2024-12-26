@@ -1,0 +1,3 @@
+[submodule "bootstrap/libs/komihash"]
+	path = bootstrap/libs/komihash
+	url = https://github.com/avaneev/komihash.git

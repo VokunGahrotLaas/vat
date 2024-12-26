@@ -117,4 +117,5 @@ void unary_print(enum unary_type type, FILE* stream);
 
 bool seq_push(struct ast* seq, struct ast* ast);
 
-VLIST(struct ast*, vlist_past, &ast_pdtor, &copy_fail, NULL);
+VTYPE(vtype_past, struct ast*, &ast_pdtor, &copy_fail, NULL, NULL, NULL);
+VLIST(vlist_past, struct ast*, &vtype_past);
