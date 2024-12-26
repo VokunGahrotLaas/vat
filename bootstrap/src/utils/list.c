@@ -106,7 +106,3 @@ bool list_push_move(struct list* list, void* data)
 	++list->size;
 	return true;
 }
-
-bool copy_fail(UNUSED void* ptr, UNUSED void const* other) { return false; }
-
-bool move_fail(UNUSED void* ptr, UNUSED void* other) { return false; }

@@ -51,9 +51,6 @@ static inline void const* list_cfront(struct list const* list);
 static inline void* list_back(struct list* list);
 static inline void const* list_cback(struct list const* list);
 
-bool copy_fail(UNUSED void* ptr, UNUSED void const* other);
-bool move_fail(UNUSED void* ptr, UNUSED void* other);
-
 // impl
 
 VTYPE(vtype_list, struct list, &list_dtor, &list_copy, &list_move, &list_cmp, &list_hash);

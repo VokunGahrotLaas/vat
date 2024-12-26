@@ -52,6 +52,9 @@ static inline uint64_t vhash(struct vtype const* vtype, self_t const* self, uint
 
 static inline bool vswap(struct vtype const* vtype, self_t* self, self_t* other);
 
+bool copy_fail(UNUSED void* ptr, UNUSED void const* other);
+bool move_fail(UNUSED void* ptr, UNUSED void* other);
+
 // impl
 
 static inline void vdtor(struct vtype const* vtype, self_t* self)
@@ -72,7 +75,11 @@ static inline bool vcopy(struct vtype const* vtype, self_t* self, self_t const* 
 static inline bool vmove(struct vtype const* vtype, self_t* self, self_t* other)
 {
 	if (vtype->move) return (*vtype->move)(self, other);
-	bool r = vcopy(vtype, self, other);
+	bool r = true;
+	if (vtype->copy != &copy_fail)
+		r = vcopy(vtype, self, other);
+	else
+		memcpy(self, other, vtype->size);
 	if (r) vdtor(vtype, other);
 	return r;
 }

@@ -182,21 +182,26 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (state != MAIN_HELP && optind + 1 != argc && state != MAIN_ERROR)
+	if (state != MAIN_HELP && state != MAIN_CHECK && state != MAIN_ERROR)
 	{
-		state = MAIN_ERROR;
-		if (optind == argc)
+		if (optind + 1 > argc)
+		{
+			state = MAIN_ERROR;
 			warnx("missing source file");
-		else
-			warnx("too many source files (%i)", argc - optind - 1);
+		}
+		source = argv[optind++];
 	}
 	if (!(state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_TRANSPILE) && output && state != MAIN_ERROR)
 	{
 		state = MAIN_ERROR;
 		warnx("this action does not support -o");
 	}
+	if (optind < argc && state != MAIN_ERROR)
+	{
+		state = MAIN_ERROR;
+		warnx("too many arguments (%i)", argc - optind);
+	}
 
-	if (state != MAIN_HELP && optind + 1 == argc && state != MAIN_ERROR) source = argv[optind];
 	if ((state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_TRANSPILE) && !output && source
 		&& state != MAIN_ERROR)
 	{
