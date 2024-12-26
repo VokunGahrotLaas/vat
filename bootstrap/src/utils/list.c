@@ -19,7 +19,7 @@ void list_dtor(struct list* list)
 	{
 		if (list->vlist->vtype.dtor)
 			for (size_t i = 0; i < list->size; ++i)
-				(*list->vlist->vtype.dtor)(list_get(list, i));
+				vdtor(&list->vlist->vtype, list_get(list, i));
 		free(list->data);
 	}
 	list->data = list->vlist->empty_impl;
@@ -80,12 +80,7 @@ bool list_push_copy(struct list* list, void const* data)
 {
 	if (!list_reserve(list, list->size + 1)) return false;
 	void* dest = list_get(list, list->size);
-	if (list->vlist->vtype.copy)
-	{
-		if (!(*list->vlist->vtype.copy)(dest, data)) return false;
-	}
-	else
-		memcpy(dest, data, list->vlist->vtype.size);
+	if (!vcopy(&list->vlist->vtype, dest, data)) return false;
 	++list->size;
 	return true;
 }
@@ -94,15 +89,7 @@ bool list_push_move(struct list* list, void* data)
 {
 	if (!list_reserve(list, list->size + 1)) return false;
 	void* dest = list_get(list, list->size);
-	if (list->vlist->vtype.move)
-	{
-		if (!(*list->vlist->vtype.move)(dest, data)) return false;
-	}
-	else
-	{
-		memcpy(dest, data, list->vlist->vtype.size);
-		memset(data, 0, list->vlist->vtype.size);
-	}
+	if (!vmove(&list->vlist->vtype, dest, data)) return false;
 	++list->size;
 	return true;
 }
