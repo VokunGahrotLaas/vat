@@ -7,7 +7,7 @@
 #include "backend/compile.h"
 #include "backend/transpile.h"
 #include "parser/parser.h"
-#include "utils/dict.h"
+#include "utils/sdict.h"
 
 enum main_state
 {
@@ -37,13 +37,16 @@ struct vbackend
 	backend_compile_t* compile;
 };
 
-int main_help(char const* name, FILE* stream, int r);
-int main_lexer(char const* source);
-int main_parser(char const* source);
-int main_transpile_c(char const* source, char const* dest, struct vbackend* backend);
-int main_compile_c(char const* source, char const* dest, struct vbackend* backend);
-int main_run_c(char const* source, struct vbackend* backend);
-int main_check(char const* source, struct vbackend* backend);
+static inline int main_help(char const* name, FILE* stream, int r);
+static inline int main_lexer(char const* source);
+static inline int main_parser(char const* source);
+static inline int main_transpile_c(char const* source, char const* dest, struct vbackend* backend);
+static inline int main_compile_c(char const* source, char const* dest, struct vbackend* backend);
+static inline int main_run_c(char const* source, struct vbackend* backend);
+static inline int main_check(char const* source);
+static inline int main_check_dict(void);
+
+static inline int main_check_sdict(void);
 
 int main(int argc, char** argv)
 {
@@ -182,7 +185,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (state != MAIN_HELP && state != MAIN_CHECK && state != MAIN_ERROR)
+	if (state != MAIN_HELP && state != MAIN_ERROR)
 	{
 		if (optind + 1 > argc)
 		{
@@ -225,14 +228,14 @@ int main(int argc, char** argv)
 	case MAIN_RUN: r = main_run_c(source, &vbackend[backend]); break;
 	case MAIN_PRINT_AST: r = main_parser(source); break;
 	case MAIN_PRINT_TOKENS: r = main_lexer(source); break;
-	case MAIN_CHECK: r = main_check(source, &vbackend[backend]); break;
+	case MAIN_CHECK: r = main_check(source); break;
 	};
 
 	str_dtor(&output_str);
 	return r;
 }
 
-int main_help(char const* name, FILE* stream, int r)
+static inline int main_help(char const* name, FILE* stream, int r)
 {
 	fprintf(stream, "USAGE: %s [OPTIONS] <source-file.vat>\n", name);
 	fprintf(stream, "\n");
@@ -248,7 +251,7 @@ int main_help(char const* name, FILE* stream, int r)
 	return r;
 }
 
-int main_lexer(char const* source)
+static inline int main_lexer(char const* source)
 {
 	struct lexer lexer;
 	lexer_of_file(&lexer, source);
@@ -268,7 +271,7 @@ int main_lexer(char const* source)
 	return r;
 }
 
-int main_parser(char const* source)
+static inline int main_parser(char const* source)
 {
 	struct parser parser;
 	parser_of_file(&parser, source);
@@ -280,7 +283,7 @@ int main_parser(char const* source)
 	return r;
 }
 
-int main_transpile_c(char const* source, char const* dest, struct vbackend* backend)
+static inline int main_transpile_c(char const* source, char const* dest, struct vbackend* backend)
 {
 	struct parser parser;
 	parser_of_file(&parser, source);
@@ -293,7 +296,7 @@ int main_transpile_c(char const* source, char const* dest, struct vbackend* back
 	return r;
 }
 
-int main_compile_c(char const* source, char const* dest, struct vbackend* backend)
+static inline int main_compile_c(char const* source, char const* dest, struct vbackend* backend)
 {
 	char tmp_file[] = "/tmp/vatc-transpile_c-XXXXXX.c";
 	if (!mkstemps(tmp_file, 2)) return 1;
@@ -308,7 +311,7 @@ int main_compile_c(char const* source, char const* dest, struct vbackend* backen
 	return r;
 }
 
-int main_run_c(char const* source, struct vbackend* backend)
+static inline int main_run_c(char const* source, struct vbackend* backend)
 {
 	char tmp_file[] = "/tmp/vatc-run_c-XXXXXX.out";
 	if (!mkstemps(tmp_file, 4)) return 1;
@@ -323,7 +326,17 @@ int main_run_c(char const* source, struct vbackend* backend)
 	return r;
 }
 
-int main_check(UNUSED char const* source, UNUSED struct vbackend* backend)
+static inline int main_check(char const* source)
+{
+	if (strcmp(source, "dict") == 0)
+		return main_check_dict();
+	else if (strcmp(source, "sdict") == 0)
+		return main_check_sdict();
+	warnx("main_check: invalid name \"%s\"", source);
+	return 1;
+}
+
+static inline int main_check_dict(void)
 {
 	VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL);
 	VPAIR(vpair_int_int, &vtype_int, &vtype_int);
@@ -367,5 +380,77 @@ int main_check(UNUSED char const* source, UNUSED struct vbackend* backend)
 	}
 
 	dict_dtor(&dict);
+	return 0;
+}
+
+static inline int main_check_sdict(void)
+{
+	VTYPE(vtype_int, int, NULL, NULL, NULL, NULL, NULL);
+	VPAIR(vpair_int_int, &vtype_int, &vtype_int);
+	VDICT(vdict_int_int, int, int, &vpair_int_int);
+
+	struct sdict sdict;
+	sdict_ctor(&sdict, &vdict_int_int, 2, 32);
+
+	for (int k = 0; k < 10; k += 2)
+	{
+		int v = k * k;
+		struct pair* pair = sdict_add_copy(&sdict, &k, &v);
+		if (pair != NULL)
+			printf("add(%i, %i) => {%i, %i}\n", k, v, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("add(%i, %i) => failure\n", k, v);
+	}
+
+	bool r = sdict_scope_begin(&sdict);
+	printf("scope_begin() => %s\n", (r ? "success" : "failure"));
+
+	for (int k = 1; k < 10; k += 2)
+	{
+		int v = k * k;
+		struct pair* pair = sdict_add_copy(&sdict, &k, &v);
+		if (pair != NULL)
+			printf("add(%i, %i) => {%i, %i}\n", k, v, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("add(%i, %i) => failure\n", k, v);
+	}
+
+	for (int k = -1; k < 16; ++k)
+	{
+		struct pair* pair = sdict_find(&sdict, &k);
+		if (pair != NULL)
+			printf("find(%i) => {%i, %i}\n", k, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("find(%i) => none\n", k);
+	}
+
+	for (int k = 4; k < 9; ++k)
+	{
+		bool r = sdict_remove(&sdict, &k);
+		printf("remove(%i) => %s\n", k, (r ? "success" : "failure"));
+	}
+
+	for (int k = -1; k < 16; ++k)
+	{
+		struct pair* pair = sdict_find(&sdict, &k);
+		if (pair != NULL)
+			printf("find(%i) => {%i, %i}\n", k, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("find(%i) => none\n", k);
+	}
+
+	r = sdict_scope_end(&sdict);
+	printf("scope_end() => %s\n", (r ? "success" : "failure"));
+
+	for (int k = -1; k < 16; ++k)
+	{
+		struct pair* pair = sdict_find(&sdict, &k);
+		if (pair != NULL)
+			printf("find(%i) => {%i, %i}\n", k, *PAIR_KEY(pair, int), *PAIR_VAL(pair, int));
+		else
+			printf("find(%i) => none\n", k);
+	}
+
+	sdict_dtor(&sdict);
 	return 0;
 }
