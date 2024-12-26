@@ -34,14 +34,6 @@ bool list_copy(struct list* list, struct list const* other)
 	return true;
 }
 
-bool list_move(struct list* list, struct list* other)
-{
-	*list = *other;
-	other->data = other->vlist->empty_impl;
-	other->capacity = other->size = 0;
-	return true;
-}
-
 uint64_t list_hash(UNUSED struct list const* list, uint64_t seed)
 {
 	uint64_t h = seed;
@@ -65,13 +57,24 @@ bool list_reserve(struct list* list, size_t capacity)
 	size_t new_capacity = list->capacity;
 	while (new_capacity < capacity)
 		new_capacity *= 2;
-	void* ptr = list->data != NULL && list->data != list->vlist->empty_impl
+	void* ptr = list->data != NULL && list->data != list->vlist->empty_impl && list->vlist->vtype.move == NULL
 		? realloc(list->data, (new_capacity + 1) * list->vlist->vtype.size)
 		: malloc((new_capacity + 1) * list->vlist->vtype.size);
 	if (!ptr) return false;
+	uint8_t* data = ptr;
+	if (list->vlist->vtype.move != NULL)
+	{
+		size_t elsz = list->vlist->vtype.size;
+		uint8_t* old_data = list->data;
+		for (size_t i = 0; i < list->size; ++i)
+		{
+			size_t idx = elsz * i;
+			vmove(&list->vlist->vtype, data + idx, old_data + idx);
+		}
+		free(old_data);
+	}
 	list->data = ptr;
 	list->capacity = new_capacity;
-	uint8_t* data = list->data;
 	memset(data + list->capacity, 0, list->vlist->vtype.size);
 	return true;
 }
@@ -91,5 +94,12 @@ bool list_push_move(struct list* list, void* data)
 	void* dest = list_get(list, list->size);
 	if (!vmove(&list->vlist->vtype, dest, data)) return false;
 	++list->size;
+	return true;
+}
+
+bool list_pop(struct list* list)
+{
+	if (list->size == 0) return false;
+	vdtor(&list->vlist->vtype, list_get(list, list->size-- - 1));
 	return true;
 }

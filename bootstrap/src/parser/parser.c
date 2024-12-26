@@ -321,7 +321,7 @@ static inline struct ast* parser_parse_call(struct parser* parser, struct ast* l
 	parser_pop_token(parser, TOKEN_RPAREN);
 	struct ast* call = ast_init(AST_CALL, &loc);
 	call->value.call.fun = lexp;
-	list_move(&call->value.call.args, &args);
+	vmove(&vtype_list, &call->value.call.args, &args);
 	return call;
 }
 
@@ -391,8 +391,8 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 		exp = parser_parse_statement(parser);
 	loc = LOC(loc, exp->loc);
 	struct ast* fndec = ast_init(AST_FNDEC, &loc);
-	list_move(&fndec->value.fndec.args, &args);
-	list_move(&fndec->value.fndec.targs, &targs);
+	vmove(&vtype_list, &fndec->value.fndec.args, &args);
+	vmove(&vtype_list, &fndec->value.fndec.targs, &targs);
 	fndec->value.fndec.name = name;
 	fndec->value.fndec.texp = texp;
 	fndec->value.fndec.exp = exp;

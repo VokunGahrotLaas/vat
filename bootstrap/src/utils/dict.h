@@ -28,7 +28,6 @@ struct dict
 bool dict_ctor(struct dict* dict, struct vdict const* vdict, size_t size);
 void dict_dtor(struct dict* dict);
 bool dict_copy(struct dict* dict, struct dict const* other);
-bool dict_move(struct dict* dict, struct dict* other);
 
 bool dict_reserve(struct dict* dict, size_t size);
 struct pair* dict_add_copy(struct dict* dict, pair_key_t const* key, pair_val_t const* value);
@@ -40,3 +39,4 @@ struct pair const* dict_cfind(struct dict const* dict, pair_key_t const* key);
 // impl
 
 VTYPE(vtype_dict, struct dict, &dict_dtor, &dict_copy, NULL, NULL, NULL);
+VLIST(vlist_dict, struct dict, &vtype_dict);

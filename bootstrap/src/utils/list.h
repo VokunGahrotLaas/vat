@@ -35,13 +35,13 @@ struct list
 bool list_ctor(struct list* list, struct vlist const* vlist, size_t capacity);
 void list_dtor(struct list* list);
 bool list_copy(struct list* list, struct list const* other);
-bool list_move(struct list* list, struct list* other);
 enum cmp_result list_cmp(struct list const* list, struct list const* other);
 uint64_t list_hash(struct list const* list, uint64_t seed);
 
 bool list_reserve(struct list* list, size_t capacity);
 bool list_push_copy(struct list* list, void const* data);
 bool list_push_move(struct list* list, void* data);
+bool list_pop(struct list* list);
 static inline void* list_get(struct list* list, size_t idx);
 static inline void const* list_cget(struct list const* list, size_t idx);
 
@@ -53,7 +53,7 @@ static inline void const* list_cback(struct list const* list);
 
 // impl
 
-VTYPE(vtype_list, struct list, &list_dtor, &list_copy, &list_move, &list_cmp, &list_hash);
+VTYPE(vtype_list, struct list, &list_dtor, &list_copy, NULL, &list_cmp, &list_hash);
 VLIST(vlist_list, struct list, &vtype_list);
 
 static inline void* list_get(struct list* list, size_t idx)

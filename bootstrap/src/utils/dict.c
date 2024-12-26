@@ -17,8 +17,6 @@ void dict_dtor(struct dict* dict) { list_dtor(&dict->pairs); }
 
 bool dict_copy(struct dict* dict, struct dict const* other) { return list_copy(&dict->pairs, &other->pairs); }
 
-bool dict_move(struct dict* dict, struct dict* other) { return list_move(&dict->pairs, &other->pairs); }
-
 bool dict_reserve(struct dict* dict, size_t size)
 {
 	if (size <= dict->pairs.size) return true;
@@ -26,7 +24,7 @@ bool dict_reserve(struct dict* dict, size_t size)
 	while (act_size < size)
 		act_size <<= 1;
 	struct list pairs;
-	if (!list_move(&pairs, &dict->pairs)) return false;
+	if (!vmove(&vtype_list, &pairs, &dict->pairs)) return false;
 	if (!list_ctor(&dict->pairs, &dict->vdict->vlist, size)) return false;
 	dict->pairs.size = act_size;
 	for (size_t i = 0; i < act_size; ++i)
