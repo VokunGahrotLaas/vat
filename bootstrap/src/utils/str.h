@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 // bootstrap
-#include "utils/utils.h"
+#include "utils/vtype.h"
 
 #define CV_EMPTY                                                                                                       \
 	(struct cv) { .data = NULL, .size = 0, }
@@ -30,7 +30,11 @@ static inline struct cv cv_str(struct str const* str);
 static inline struct cv cv_cstr(char const* cstr);
 static inline struct cv cv_sub(struct cv cv, size_t offset, size_t size);
 static inline void cv_print(struct cv cv, FILE* stream);
-static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs);
+static inline uint64_t cv_hash(struct cv cv, uint64_t seed);
+static inline enum cmp_result cv_cmp(struct cv lhs, struct cv rhs);
+
+uint64_t cv_hash_(struct cv const* cv, uint64_t seed);
+enum cmp_result cv_cmp_(struct cv const* cv, struct cv const* other);
 
 static inline bool str_ctor(struct str* str, size_t capacity);
 static inline bool str_of_cv(struct str* str, struct cv cv);
@@ -42,9 +46,13 @@ static inline bool str_pushc(struct str* str, char c);
 
 void str_dtor(struct str* str);
 bool str_copy(struct str* str, struct str const* other);
-bool str_move(struct str* str, struct str* other);
+uint64_t str_hash(struct str const* str, uint64_t seed);
+enum cmp_result str_cmp(struct str const* str, struct str const* other);
 
 // impl
+
+VTYPE(vtype_cv, struct cv, NULL, NULL, NULL, &cv_cmp_, &cv_hash_);
+VTYPE(vtype_str, struct str, &str_dtor, &str_copy, NULL, &str_cmp, &str_hash);
 
 static inline struct cv cv_str(struct str const* str)
 {
@@ -80,7 +88,9 @@ static inline void cv_print(struct cv cv, FILE* stream)
 			fprintf(stream, "\\x%02x", (unsigned)(unsigned char)cv.data[i]);
 }
 
-static inline ptrdiff_t cv_cmp(struct cv lhs, struct cv rhs)
+static inline uint64_t cv_hash(struct cv cv, uint64_t seed) { return hash(cv.data, cv.size, seed); }
+
+static inline enum cmp_result cv_cmp(struct cv lhs, struct cv rhs)
 {
 	size_t min = lhs.size < rhs.size ? lhs.size : rhs.size;
 	int r = min > 0 ? memcmp(lhs.data, rhs.data, min) : 0;

@@ -75,13 +75,9 @@ static inline bool vcopy(struct vtype const* vtype, self_t* self, self_t const* 
 static inline bool vmove(struct vtype const* vtype, self_t* self, self_t* other)
 {
 	if (vtype->move) return (*vtype->move)(self, other);
-	bool r = true;
-	if (vtype->copy != &copy_fail)
-		r = vcopy(vtype, self, other);
-	else
-		memcpy(self, other, vtype->size);
-	if (r) vdtor(vtype, other);
-	return r;
+	memcpy(self, other, vtype->size);
+	memset(other, 0, vtype->size);
+	return true;
 }
 
 static inline enum cmp_result vcmp(struct vtype const* vtype, self_t const* self, self_t const* other)

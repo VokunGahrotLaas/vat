@@ -36,3 +36,7 @@ struct pair* dict_add_move(struct dict* dict, pair_key_t* key, pair_val_t* value
 bool dict_remove(struct dict* dict, pair_key_t const* key);
 struct pair* dict_find(struct dict* dict, pair_key_t const* key);
 struct pair const* dict_cfind(struct dict const* dict, pair_key_t const* key);
+
+// impl
+
+VTYPE(vtype_dict, struct dict, &dict_dtor, &dict_copy, NULL, NULL, NULL);

@@ -35,7 +35,7 @@ bool dict_reserve(struct dict* dict, size_t size)
 	{
 		struct pair* pair = LIST_GET(&pairs, struct pair, i);
 		if (pair_status(pair) != PAIR_SET) continue;
-		*pair_pstatus(pair) = PAIR_UNSET;
+		pair_set_status(pair, PAIR_UNSET);
 		if (!dict_add_move(dict, pair_key(pair), pair_val(pair))) return false;
 	}
 	return true;

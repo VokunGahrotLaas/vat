@@ -210,7 +210,7 @@ static inline struct ast* parser_parse_strlit(struct parser* parser)
 	if (!parser_peek_token(parser, TOKEN_STRLIT)) return ast_init(AST_ERROR, &token.loc);
 	lexer_pop(&parser->lexer);
 	struct ast* word = ast_init(AST_STRLIT, &token.loc);
-	str_move(&word->value.strlit.str, &token.val.str);
+	vmove(&vtype_str, &word->value.strlit.str, &token.val.str);
 	token_dtor(&token);
 	return word;
 }
@@ -222,7 +222,7 @@ static inline struct ast* parser_parse_var(struct parser* parser)
 	if (!parser_peek_token(parser, TOKEN_WORD)) return ast_init(AST_ERROR, &token.loc);
 	lexer_pop(&parser->lexer);
 	struct ast* word = ast_init(AST_WORD, &token.loc);
-	str_move(&word->value.word.str, &token.val.str);
+	vmove(&vtype_str, &word->value.word.str, &token.val.str);
 	token_dtor(&token);
 	return word;
 }

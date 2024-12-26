@@ -5,8 +5,7 @@
 
 #define PAIR_ALIGN(AlignKey, AlignVal) MAX(MAX(AlignKey, AlignVal), alignof(struct pair))
 #define PAIR_SIZE(SizeKey, SizeVal, AlignKey, AlignVal)                                                                \
-	ALIGN(sizeof(struct pair) + PAIR_VAL_OFFSET(SizeKey, AlignKey, AlignVal) + SizeVal + sizeof(uint8_t),              \
-		  alignof(struct pair))
+	ALIGN(sizeof(struct pair) + PAIR_VAL_OFFSET(SizeKey, AlignKey, AlignVal) + SizeVal, alignof(struct pair))
 #define PAIR_KEY_OFFSET(AlignKey) (ALIGN(sizeof(struct pair), AlignKey) - sizeof(struct pair))
 #define PAIR_VAL_OFFSET(SizeKey, AlignKey, AlignVal)                                                                   \
 	(ALIGN(sizeof(struct pair) + PAIR_KEY_OFFSET(AlignKey) + SizeKey, AlignVal) - sizeof(struct pair))
@@ -43,8 +42,8 @@ struct vpair
 enum pair_status
 {
 	PAIR_NONE = 0,
-	PAIR_SET,
-	PAIR_UNSET,
+	PAIR_SET = 1,
+	PAIR_UNSET = 2,
 };
 
 struct pair
@@ -65,23 +64,38 @@ static inline pair_key_t* pair_key(struct pair* pair);
 static inline pair_val_t* pair_val(struct pair* pair);
 static inline pair_key_t const* pair_ckey(struct pair const* pair);
 static inline pair_val_t const* pair_cval(struct pair const* pair);
+static inline struct vpair const* pair_vpair(struct pair const* pair);
 static inline enum pair_status pair_status(struct pair const* pair);
-static inline uint8_t* pair_pstatus(struct pair* pair);
+static inline void pair_set_status(struct pair* pair, enum pair_status status);
 
 // impl
 
-static inline pair_key_t* pair_key(struct pair* pair) { return pair->data + pair->vpair->key_offset; }
+static inline pair_key_t* pair_key(struct pair* pair) { return pair->data + pair_vpair(pair)->key_offset; }
 
-static inline pair_val_t* pair_val(struct pair* pair) { return pair->data + pair->vpair->val_offset; }
+static inline pair_val_t* pair_val(struct pair* pair) { return pair->data + pair_vpair(pair)->val_offset; }
 
-static inline pair_key_t const* pair_ckey(struct pair const* pair) { return pair->data + pair->vpair->key_offset; }
+static inline pair_key_t const* pair_ckey(struct pair const* pair) { return pair->data + pair_vpair(pair)->key_offset; }
 
-static inline pair_val_t const* pair_cval(struct pair const* pair) { return pair->data + pair->vpair->val_offset; }
+static inline pair_val_t const* pair_cval(struct pair const* pair) { return pair->data + pair_vpair(pair)->val_offset; }
 
-static inline enum pair_status pair_status(struct pair const* pair) { return *pair_pstatus((struct pair*)pair); }
-
-static inline uint8_t* pair_pstatus(struct pair* pair)
+static inline struct vpair const* pair_vpair(struct pair const* pair)
 {
-	void* ptr = pair->data + pair->vpair->status_offset;
-	return ptr;
+	uintptr_t mask = 3;
+	uintptr_t r = (uintptr_t)pair->vpair & ~mask;
+	return (struct vpair const*)r;
+}
+
+static inline enum pair_status pair_status(struct pair const* pair)
+{
+	uintptr_t mask = 3;
+	uintptr_t r = (uintptr_t)pair->vpair & mask;
+	return r;
+}
+
+static inline void pair_set_status(struct pair* pair, enum pair_status status)
+{
+	uintptr_t mask = 3;
+	uintptr_t r = (uintptr_t)pair->vpair & ~mask;
+	uintptr_t s = (uintptr_t)status & mask;
+	pair->vpair = (struct vpair const*)(r | s);
 }
