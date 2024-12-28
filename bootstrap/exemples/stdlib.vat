@@ -2,7 +2,7 @@ module std.io;
 
 @export
 @extern("c") @cname("open")
-fn open(filename: str, int: flags, int: mode) -> int;
+fn open(filename: str, flags: int, mode: int) -> int;
 
 @export
 @extern("c") @cname("write")
@@ -14,4 +14,4 @@ fn read(fd: int, buf: str, count: size_t) -> ssize_t;
 
 @export
 @extern("c") @cname("close")
-fn close(int: fd) -> int;
+fn close(fd: int) -> int;

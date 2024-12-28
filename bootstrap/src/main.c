@@ -7,6 +7,7 @@
 #include "backend/compile.h"
 #include "backend/transpile.h"
 #include "parser/parser.h"
+#include "post/binder.h"
 #include "post/module_binder.h"
 #include "utils/sdict.h"
 
@@ -299,6 +300,13 @@ static inline int main_parser(char const* source)
 	fputs("exports: ", stderr);
 	dict_print(&module->exports, stderr);
 	fputc('\n', stderr);
+
+	struct binder binder;
+	binder_ctor(&binder, &modules);
+	binder_bind(&binder, ast);
+	if (binder.error) r = 1;
+	binder_dtor(&binder);
+
 	dict_dtor(&modules);
 
 	ast_print(ast, stdout);

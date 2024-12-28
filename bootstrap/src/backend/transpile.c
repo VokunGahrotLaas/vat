@@ -173,11 +173,11 @@ static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast,
 	for (size_t i = 0; i < fndec->args.size; ++i)
 	{
 		if (i != 0) fputs(", ", stream);
-		if (!transpile_c_ast(tp_c, *LIST_GET(&fndec->args, struct ast*, i), indent, stream)) return false;
-		struct ast* texp = *LIST_GET(&fndec->targs, struct ast*, i);
-		if (!texp) continue;
+		struct ast* vardec = *LIST_GET(&fndec->args, struct ast*, i);
+		if (!transpile_c_ast(tp_c, vardec->value.vardec.name, indent, stream)) return false;
+		if (!vardec->value.vardec.texp) continue;
 		fputs(": ", stream);
-		if (!transpile_c_ast(tp_c, texp, indent, stream)) return false;
+		if (!transpile_c_ast(tp_c, vardec->value.vardec.texp, indent, stream)) return false;
 	}
 	fputc(')', stream);
 	return true;

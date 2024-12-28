@@ -57,7 +57,6 @@ void ast_free(struct ast* ast)
 	case AST_FNDEC: {
 		struct ast_fndec* fndec = &ast->value.fndec;
 		list_dtor(&fndec->args);
-		list_dtor(&fndec->targs);
 		ast_free(fndec->name);
 		ast_free(fndec->texp);
 		ast_free(fndec->exp);
@@ -240,11 +239,11 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		for (size_t i = 0; i < fndec->args.size; ++i)
 		{
 			if (i != 0) fputs(", ", stream);
-			ast_print_impl(*LIST_GET(&fndec->args, struct ast*, i), stream, indent);
-			struct ast* texp = *LIST_GET(&fndec->targs, struct ast*, i);
-			if (!texp) continue;
+			struct ast* vardec = *LIST_GET(&fndec->args, struct ast*, i);
+			ast_print_impl(vardec->value.vardec.name, stream, indent);
+			if (!vardec->value.vardec.texp) continue;
 			fputs(": ", stream);
-			ast_print_impl(texp, stream, indent);
+			ast_print_impl(vardec->value.vardec.texp, stream, indent);
 		}
 		fputc(')', stream);
 		if (fndec->texp)

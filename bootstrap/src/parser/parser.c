@@ -389,28 +389,31 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 	if (!parser_pop_token(parser, TOKEN_LPAREN)) return ast_init(AST_ERROR, &loc);
 	parser_skip_whitespace(parser);
 	struct list args;
-	struct list targs;
 	list_ctor(&args, &vlist_upast, 16);
-	list_ctor(&targs, &vlist_upast, 16);
 	while (lexer_peek(&parser->lexer).type & ~(TOKEN_RPAREN | TOKEN_EOF))
 	{
 		struct ast* targ = NULL;
 		struct ast* arg = parser_parse_var(parser);
+		struct loc locarg = arg->loc;
 		parser_skip_whitespace(parser);
 		enum token_type type = parser_peek_token(parser, TOKEN_COLON | TOKEN_COMA | TOKEN_RPAREN);
-		if (!type) return ast_init(AST_ERROR, &loc);
+		if (!type) return ast_init(AST_ERROR, &locarg);
 		if (type == TOKEN_COLON)
 		{
 			lexer_pop(&parser->lexer);
 			parser_skip_whitespace(parser);
 			targ = parser_parse_texp(parser);
+			locarg = LOC(locarg, targ->loc);
 			parser_skip_whitespace(parser);
 			type = parser_peek_token(parser, TOKEN_COMA | TOKEN_RPAREN);
-			if (!type) return ast_init(AST_ERROR, &loc);
+			if (!type) return ast_init(AST_ERROR, &locarg);
 		}
 		if (type == TOKEN_COMA) lexer_pop(&parser->lexer);
-		list_push_move(&args, &arg);
-		list_push_move(&targs, &targ);
+		struct ast* vardec = ast_init(AST_VARDEC, &locarg);
+		vardec->value.vardec.name = arg;
+		vardec->value.vardec.texp = targ;
+		vardec->value.vardec.exp = NULL;
+		list_push_move(&args, &vardec);
 	}
 	if (!parser_pop_token(parser, TOKEN_RPAREN)) return ast_init(AST_ERROR, &loc);
 	parser_skip_whitespace(parser);
@@ -450,7 +453,6 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 	if (exp != NULL) loc = LOC(loc, exp->loc);
 	struct ast* fndec = ast_init(AST_FNDEC, &loc);
 	vmove(&vtype_list, &fndec->value.fndec.args, &args);
-	vmove(&vtype_list, &fndec->value.fndec.targs, &targs);
 	fndec->value.fndec.name = name;
 	fndec->value.fndec.texp = texp;
 	fndec->value.fndec.exp = exp;

@@ -51,15 +51,12 @@ bool visit_ast(void* visitor, struct ast* ast, visit_ast_t* func)
 		bool r = true;
 		if (ast->value.vardec.texp != NULL) r = (*func)(visitor, ast->value.vardec.texp) && r;
 		r = (*func)(visitor, ast->value.vardec.name) && r;
-		r = (*func)(visitor, ast->value.vardec.exp) && r;
+		if (ast->value.vardec.exp != NULL) r = (*func)(visitor, ast->value.vardec.exp) && r;
 		return r;
 	}
 	case AST_FNDEC: {
 		bool r = true;
 		r = (*func)(visitor, ast->value.fndec.name) && r;
-		struct list* targs = &ast->value.fndec.targs;
-		for (size_t i = 0; i < targs->size; ++i)
-			if (*LIST_GET(targs, struct ast*, i) != NULL) r = (*func)(visitor, *LIST_GET(targs, struct ast*, i)) && r;
 		struct list* args = &ast->value.fndec.args;
 		for (size_t i = 0; i < args->size; ++i)
 			r = (*func)(visitor, *LIST_GET(args, struct ast*, i)) && r;

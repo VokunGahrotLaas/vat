@@ -98,7 +98,6 @@ struct ast_vardec
 struct ast_fndec
 {
 	struct list args;
-	struct list targs;
 	struct ast* name;
 	struct ast* texp;
 	struct ast* exp;
