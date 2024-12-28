@@ -1,6 +1,7 @@
 #pragma once
 
 // bootstrap
+#include "parser/ast.h"
 #include "post/module.h"
 
 struct module_binder

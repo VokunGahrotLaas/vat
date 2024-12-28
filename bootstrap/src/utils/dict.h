@@ -12,6 +12,13 @@
 		.vlist = CATX(Name, _vlist),                                                                                   \
 	}
 
+#define VSET(Name, TypeKey, VUPair)                                                                                    \
+	VLIST_DYN(CATX(Name, _vlist), UPAIR_SIZE(sizeof(TypeKey), alignof(TypeKey)), &(VUPair)->vtype);                    \
+	static struct vdict const Name = {                                                                                 \
+		.vpair = *(VUPair),                                                                                            \
+		.vlist = CATX(Name, _vlist),                                                                                   \
+	}
+
 struct vdict
 {
 	struct vpair vpair;

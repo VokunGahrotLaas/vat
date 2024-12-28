@@ -28,7 +28,6 @@ bool module_binder_bind(struct module_binder* binder, struct ast* ast)
 		binder->error = true;
 		return false;
 	}
-	binder->module->ast = ast;
 	str_pushcv(&binder->module->source_file, binder->source_file);
 	for (size_t i = 0; i < seq->size; ++i)
 		module_binder_bind_exports(binder, *LIST_GET(seq, struct ast*, i));
@@ -55,7 +54,7 @@ static inline bool module_binder_bind_moddec(struct module_binder* binder, struc
 			struct pair* pair = dict_find(mods, &name);
 			if (!pair)
 			{
-				struct module* new_mod = module_init(name, NULL);
+				struct module* new_mod = module_init(name);
 				struct cv new_name = name;
 				new_mod->parent = mod;
 				mod = new_mod;
@@ -66,7 +65,7 @@ static inline bool module_binder_bind_moddec(struct module_binder* binder, struc
 			mods = &mod->children;
 			var = var->value.var.next;
 		}
-		if (mod->ast != NULL)
+		if (mod->source_file.size > 0)
 		{
 			fprintf(stderr, "module binder: module \"");
 			module_print(mod, stderr);

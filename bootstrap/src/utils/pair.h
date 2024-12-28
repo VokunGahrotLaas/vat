@@ -19,8 +19,23 @@
 		.vval = *(VTypeVal),                                                                                           \
 		.key_offset = PAIR_KEY_OFFSET((VTypeKey)->align),                                                              \
 		.val_offset = PAIR_VAL_OFFSET((VTypeKey)->size, (VTypeKey)->align, (VTypeVal)->align),                         \
-		.status_offset = PAIR_VAL_OFFSET((VTypeKey)->size, (VTypeKey)->align, (VTypeVal)->align) + (VTypeVal)->size,   \
 	}
+
+#define UPAIR_ALIGN(AlignKey) MAX(AlignKey, alignof(struct pair))
+#define UPAIR_SIZE(SizeKey, AlignKey)                                                                                  \
+	ALIGN(sizeof(struct pair) + PAIR_KEY_OFFSET(AlignKey) + SizeKey, alignof(struct pair))
+#define UPAIR_KEY_OFFSET(AlignKey) (ALIGN(sizeof(struct pair), AlignKey) - sizeof(struct pair))
+#define VUPAIR(Name, VTypeKey)                                                                                         \
+	VTYPE_DYN(CATX(Name, _vtype), struct pair, &pair_dtor, &pair_copy, &pair_move, NULL, NULL, NULL,                   \
+			  UPAIR_SIZE((VTypeKey)->size, (VTypeKey)->align), UPAIR_ALIGN((VTypeKey)->align));                        \
+	static struct vpair const Name = {                                                                                 \
+		.vtype = CATX(Name, _vtype),                                                                                   \
+		.vkey = *(VTypeKey),                                                                                           \
+		.vval = *(VTypeKey),                                                                                           \
+		.key_offset = PAIR_KEY_OFFSET((VTypeKey)->align),                                                              \
+		.val_offset = PAIR_KEY_OFFSET((VTypeKey)->align),                                                              \
+	}
+
 #define PAIR_KEY(Pair, TypeKey) (TypeKey*)pair_key((Pair))
 #define PAIR_VAL(Pair, TypeVal) (TypeVal*)pair_val((Pair))
 #define PAIR_CKEY(Pair, TypeKey) (TypeKey const*)pair_ckey((Pair))
@@ -36,7 +51,6 @@ struct vpair
 	struct vtype vval;
 	size_t key_offset;
 	size_t val_offset;
-	size_t status_offset;
 };
 
 enum pair_status

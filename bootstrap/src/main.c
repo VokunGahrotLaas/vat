@@ -290,6 +290,7 @@ static inline int main_parser(char const* source)
 	module_binder_dtor(&mbinder);
 
 	ast_print(ast, stdout);
+	ast_free(ast);
 	dict_dtor(&modules);
 	return r;
 }
