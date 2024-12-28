@@ -35,6 +35,7 @@ struct dict
 bool dict_ctor(struct dict* dict, struct vdict const* vdict, size_t size);
 void dict_dtor(struct dict* dict);
 bool dict_copy(struct dict* dict, struct dict const* other);
+void dict_print(struct dict const* dict, FILE* stream);
 
 bool dict_reserve(struct dict* dict, size_t size);
 struct pair* dict_add_copy(struct dict* dict, pair_key_t const* key, pair_val_t const* value);

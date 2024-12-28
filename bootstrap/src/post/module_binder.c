@@ -83,11 +83,23 @@ static inline bool module_binder_bind_moddec(struct module_binder* binder, struc
 
 static inline bool module_binder_bind_exports(struct module_binder* binder, struct ast* ast)
 {
-	(void)binder;
+	struct cv const exp = cv_cstr("export");
+	struct str* str_name = NULL;
 	switch (ast->ast_type)
 	{
-	case AST_FNDEC: break;
-	default: break;
+	case AST_FNDEC:
+		if (dict_find(&ast->attrs, &exp) == NULL) return true;
+		str_name = &ast->value.fndec.name->value.var.name;
+		break;
+	case AST_VARDEC:
+		if (dict_find(&ast->attrs, &exp) == NULL) return true;
+		str_name = &ast->value.vardec.name->value.var.name;
+		break;
+	default: return true;
 	};
+	struct cv name = cv_str(str_name);
+	struct type* type = NULL;
+	dict_add_copy(&binder->module->exports_names, &name, str_name);
+	dict_add_move(&binder->module->exports, &name, &type);
 	return true;
 }

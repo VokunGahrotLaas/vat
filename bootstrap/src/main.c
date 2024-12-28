@@ -286,12 +286,23 @@ static inline int main_parser(char const* source)
 	struct module_binder mbinder;
 	module_binder_ctor(&mbinder, &modules, cv_cstr(source));
 	module_binder_bind(&mbinder, ast);
+	struct module* module = mbinder.module;
 	if (mbinder.error) r = 1;
 	module_binder_dtor(&mbinder);
 
+	fputs("module_name: ", stderr);
+	module_print(module, stderr);
+	fputc('\n', stderr);
+	fputs("exports_names: ", stderr);
+	dict_print(&module->exports_names, stderr);
+	fputc('\n', stderr);
+	fputs("exports: ", stderr);
+	dict_print(&module->exports, stderr);
+	fputc('\n', stderr);
+	dict_dtor(&modules);
+
 	ast_print(ast, stdout);
 	ast_free(ast);
-	dict_dtor(&modules);
 	return r;
 }
 

@@ -17,6 +17,24 @@ void dict_dtor(struct dict* dict) { list_dtor(&dict->pairs); }
 
 bool dict_copy(struct dict* dict, struct dict const* other) { return list_copy(&dict->pairs, &other->pairs); }
 
+void dict_print(struct dict const* dict, FILE* stream)
+{
+	size_t const size = dict->pairs.size;
+	fputc('{', stream);
+	bool first = true;
+	for (size_t i = 0; i < size; ++i)
+	{
+		struct pair const* pair = LIST_CGET(&dict->pairs, struct pair, i);
+		if (pair_status(pair) != PAIR_SET) continue;
+		if (!first) fputs(", ", stream);
+		first = false;
+		vprint(&dict->vdict->vpair.vkey, pair_ckey(pair), stream);
+		fputs(": ", stream);
+		vprint(&dict->vdict->vpair.vval, pair_cval(pair), stream);
+	}
+	fputc('}', stream);
+}
+
 bool dict_reserve(struct dict* dict, size_t size)
 {
 	if (size <= dict->pairs.size) return true;

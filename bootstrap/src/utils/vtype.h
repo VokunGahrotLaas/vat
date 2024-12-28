@@ -59,6 +59,7 @@ static inline bool vmove(struct vtype const* vtype, self_t* self, self_t* other)
 static inline bool vcopy(struct vtype const* vtype, self_t* self, self_t const* other);
 static inline uint64_t vhash(struct vtype const* vtype, self_t const* self, uint64_t seed);
 static inline void vprint(struct vtype const* vtype, self_t const* self, FILE* stream);
+static inline void vprint_dbg(struct vtype const* vtype, self_t const* self, FILE* stream);
 
 static inline bool vswap(struct vtype const* vtype, self_t* self, self_t* other);
 
@@ -103,6 +104,14 @@ static inline uint64_t vhash(struct vtype const* vtype, self_t const* self, uint
 }
 
 static inline void vprint(struct vtype const* vtype, self_t const* self, FILE* stream)
+{
+	if (vtype->print)
+		(*vtype->print)(self, stream);
+	else
+		fprintf(stream, "%s@%p", vtype->name, (void*)self);
+}
+
+static inline void vprint_dbg(struct vtype const* vtype, self_t const* self, FILE* stream)
 {
 	fprintf(stream, "%s{%s size=%zu align=%zu value=", vtype->name, vtype->type_name, vtype->size, vtype->align);
 	if (vtype->print)
