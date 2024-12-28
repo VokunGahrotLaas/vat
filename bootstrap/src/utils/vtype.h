@@ -71,7 +71,7 @@ static inline void vdtor(struct vtype const* vtype, self_t* self)
 {
 	if (vtype->dtor)
 		(*vtype->dtor)(self);
-	else
+	else if (self != NULL)
 		memset(self, 0, vtype->size);
 }
 

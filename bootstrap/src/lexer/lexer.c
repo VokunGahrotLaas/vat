@@ -95,7 +95,9 @@ static inline bool is_op(int c)
 	case ':': FALLTHROUGH;
 	case ',': FALLTHROUGH;
 	case '{': FALLTHROUGH;
-	case '}': return true;
+	case '}': FALLTHROUGH;
+	case '.': FALLTHROUGH;
+	case '@': return true;
 	default: return false;
 	};
 }
@@ -174,6 +176,12 @@ static inline void lexer_lex_word(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_FN);
 	else if (cv_cmp(cv_str(&v), cv_cstr("ret")) == 0)
 		token_of_type(&lexer->current, &loc, TOKEN_RET);
+	else if (cv_cmp(cv_str(&v), cv_cstr("module")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_MODULE);
+	else if (cv_cmp(cv_str(&v), cv_cstr("import")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_IMPORT);
+	else if (cv_cmp(cv_str(&v), cv_cstr("as")) == 0)
+		token_of_type(&lexer->current, &loc, TOKEN_AS);
 	else
 	{
 		token_ctor_word(&lexer->current, &loc, &v);
@@ -216,6 +224,10 @@ static inline void lexer_lex_op(struct lexer* lexer)
 		token_of_type(&lexer->current, &loc, TOKEN_LCURLBRA);
 	else if (c == '}')
 		token_of_type(&lexer->current, &loc, TOKEN_RCURLBRA);
+	else if (c == '.')
+		token_of_type(&lexer->current, &loc, TOKEN_DOT);
+	else if (c == '@')
+		token_of_type(&lexer->current, &loc, TOKEN_AT);
 	else
 	{
 		lexer->error = true;

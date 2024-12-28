@@ -43,8 +43,11 @@ static bool binder_bind_ast(struct binder* binder, struct ast* ast)
 	case AST_STRLIT: FALLTHROUGH;
 	case AST_UNARY: FALLTHROUGH;
 	case AST_CALL: FALLTHROUGH;
+	case AST_ATTR: FALLTHROUGH;
 	case AST_SEXP: FALLTHROUGH;
-	case AST_VARDEC:
+	case AST_VARDEC: FALLTHROUGH;
+	case AST_MODDEC: FALLTHROUGH;
+	case AST_IMPDEC: FALLTHROUGH;
 	case AST_RET: return visit_ast(binder, ast, (visit_ast_t*)&binder_bind_ast);
 	case AST_SEQ:
 		sdict_scope_begin(&binder->vars);
@@ -75,12 +78,12 @@ static bool binder_bind_ast(struct binder* binder, struct ast* ast)
 		sdict_scope_end(&binder->vars);
 		return r;
 	}
-	case AST_WORD: {
-		struct cv name = cv_str(&ast->value.word.str);
+	case AST_VAR: {
+		struct cv name = cv_str(&ast->value.var.name);
 		struct pair const* pair = sdict_cfind(&binder->vars, &name);
 		if (pair)
 		{
-			ast->value.word.dec = *PAIR_CVAL(pair, struct ast*);
+			ast->value.var.dec = *PAIR_CVAL(pair, struct ast*);
 			return true;
 		}
 		warnx("binder: no such variable in scope \"%s\"", name.data);
@@ -100,16 +103,19 @@ static bool binder_prebind_ast(struct binder* binder, struct ast* ast)
 	case AST_STRLIT: FALLTHROUGH;
 	case AST_UNARY: FALLTHROUGH;
 	case AST_CALL: FALLTHROUGH;
+	case AST_ATTR: FALLTHROUGH;
 	case AST_SEXP: FALLTHROUGH;
 	case AST_SEQ: FALLTHROUGH;
-	case AST_WORD: FALLTHROUGH;
+	case AST_VAR: FALLTHROUGH;
+	case AST_MODDEC: FALLTHROUGH;
+	case AST_IMPDEC: FALLTHROUGH;
 	case AST_RET: return true;
 	case AST_VARDEC: {
-		struct cv name = cv_str(&ast->value.vardec.name->value.word.str);
+		struct cv name = cv_str(&ast->value.vardec.name->value.var.name);
 		return sdict_add_copy(&binder->vars, &name, &ast);
 	}
 	case AST_FNDEC: {
-		struct cv name = cv_str(&ast->value.fndec.name->value.word.str);
+		struct cv name = cv_str(&ast->value.fndec.name->value.var.name);
 		return sdict_add_copy(&binder->vars, &name, &ast);
 	}
 	};

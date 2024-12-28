@@ -27,15 +27,20 @@ enum token_type
 	TOKEN_LCURLBRA = 1 << 12,
 	TOKEN_RCURLBRA = 1 << 13,
 	TOKEN_ARROW = 1 << 14,
+	TOKEN_DOT = 1 << 15,
+	TOKEN_AT = 1 << 16,
 	// words
-	TOKEN_LET = 1 << 15,
-	TOKEN_FN = 1 << 16,
-	TOKEN_RET = 1 << 17,
+	TOKEN_LET = 1 << 17,
+	TOKEN_FN = 1 << 18,
+	TOKEN_RET = 1 << 19,
+	TOKEN_MODULE = 1 << 20,
+	TOKEN_IMPORT = 1 << 21,
+	TOKEN_AS = 1 << 22,
 	// value: str
-	TOKEN_WORD = 1 << 18,
-	TOKEN_STRLIT = 1 << 19,
+	TOKEN_WORD = 1 << 23,
+	TOKEN_STRLIT = 1 << 24,
 	// value: u64
-	TOKEN_NUMLIT = 1 << 20,
+	TOKEN_NUMLIT = 1 << 25,
 #define TOKEN_MAX (TOKEN_NUMLIT + 1)
 };
 

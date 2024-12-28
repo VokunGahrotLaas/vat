@@ -17,13 +17,14 @@ See [Syntax](./README-Syntax.md)
   * parser
   * transpile to c
   * parse args
+  * name binder
 
 ## Current tasks
 
 * bootstrap vatc in C
   * writing syntax
   * implementing syntax
-  * name binder
+  * module binder
   * type checker
 
 ## TODO

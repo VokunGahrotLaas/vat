@@ -6,12 +6,22 @@ bool visit_ast(void* visitor, struct ast* ast, visit_ast_t* func)
 	{
 	case AST_ERROR: FALLTHROUGH;
 	case AST_NUMLIT: FALLTHROUGH;
-	case AST_STRLIT: FALLTHROUGH;
-	case AST_WORD: return true;
+	case AST_STRLIT: return true;
+	case AST_VAR:
+		if (ast->value.var.next != NULL) (*func)(visitor, ast->value.var.next);
+		return true;
 	case AST_UNARY: return (*func)(visitor, ast->value.unary.rhs);
+	case AST_ATTR: {
+		bool r = true;
+		r = (*func)(visitor, ast->value.attr.name) && r;
+		struct list* args = &ast->value.attr.args;
+		for (size_t i = 0; i < args->size; ++i)
+			r = (*func)(visitor, *LIST_GET(args, struct ast*, i)) && r;
+		return r;
+	}
 	case AST_CALL: {
 		bool r = true;
-		r = (*func)(visitor, ast->value.call.fun) && r;
+		r = (*func)(visitor, ast->value.call.name) && r;
 		struct list* args = &ast->value.call.args;
 		for (size_t i = 0; i < args->size; ++i)
 			r = (*func)(visitor, *LIST_GET(args, struct ast*, i)) && r;
@@ -26,6 +36,17 @@ bool visit_ast(void* visitor, struct ast* ast, visit_ast_t* func)
 	}
 	case AST_SEXP: return (*func)(visitor, ast->value.sexp.exp);
 	case AST_RET: return (*func)(visitor, ast->value.ret.exp);
+	case AST_MODDEC: {
+		bool r = true;
+		r = (*func)(visitor, ast->value.moddec.name) && r;
+		return r;
+	}
+	case AST_IMPDEC: {
+		bool r = true;
+		r = (*func)(visitor, ast->value.impdec.mod_name) && r;
+		if (ast->value.impdec.as_name != NULL) r = (*func)(visitor, ast->value.impdec.as_name) && r;
+		return r;
+	}
 	case AST_VARDEC: {
 		bool r = true;
 		if (ast->value.vardec.texp != NULL) r = (*func)(visitor, ast->value.vardec.texp) && r;
@@ -38,12 +59,12 @@ bool visit_ast(void* visitor, struct ast* ast, visit_ast_t* func)
 		r = (*func)(visitor, ast->value.fndec.name) && r;
 		struct list* targs = &ast->value.fndec.targs;
 		for (size_t i = 0; i < targs->size; ++i)
-			r = (*func)(visitor, *LIST_GET(targs, struct ast*, i)) && r;
+			if (*LIST_GET(targs, struct ast*, i) != NULL) r = (*func)(visitor, *LIST_GET(targs, struct ast*, i)) && r;
 		struct list* args = &ast->value.fndec.args;
 		for (size_t i = 0; i < args->size; ++i)
 			r = (*func)(visitor, *LIST_GET(args, struct ast*, i)) && r;
 		if (ast->value.fndec.texp != NULL) r = (*func)(visitor, ast->value.fndec.texp) && r;
-		r = (*func)(visitor, ast->value.fndec.exp) && r;
+		if (ast->value.fndec.exp != NULL) r = (*func)(visitor, ast->value.fndec.exp) && r;
 		return r;
 	}
 	};

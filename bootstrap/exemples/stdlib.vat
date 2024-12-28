@@ -1,0 +1,17 @@
+module std.io;
+
+@export
+@extern("c") @cname("open")
+fn open(filename: str, int: flags, int: mode) -> int;
+
+@export
+@extern("c") @cname("write")
+fn write(fd: int, buf: str, count: size_t) -> ssize_t;
+
+@export
+@extern("c") @cname("read")
+fn write(fd: int, buf: str, count: size_t) -> ssize_t;
+
+@export
+@extern("c") @cname("close")
+fn close(int: fd) -> int;

@@ -55,14 +55,24 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 {
 	switch (ast->ast_type)
 	{
-	case AST_ERROR: UNREACHABLE();
+	case AST_ATTR: FALLTHROUGH;
+	case AST_MODDEC: FALLTHROUGH;
+	case AST_IMPDEC: FALLTHROUGH;
+	case AST_ERROR: break;
 	case AST_NUMLIT: fprintf(stream, "%" PRIu64, ast->value.numlit.u64); break;
 	case AST_STRLIT:
 		fputc('"', stream);
-		cv_print(cv_str(&ast->value.word.str), stream);
+		cv_print(cv_str(&ast->value.strlit.str), stream);
 		fputc('"', stream);
 		break;
-	case AST_WORD: cv_print(cv_str(&ast->value.word.str), stream); break;
+	case AST_VAR:
+		cv_print(cv_str(&ast->value.var.name), stream);
+		if (ast->value.var.next)
+		{
+			fputc('.', stream);
+			return transpile_c_ast(tp_c, ast->value.var.next, indent, stream);
+		}
+		break;
 	case AST_UNARY:
 		fputc((ast->value.unary.op == UNARY_PLUS ? '+' : '-'), stream);
 		transpile_c_ast(tp_c, ast->value.unary.rhs, indent, stream);
@@ -100,7 +110,7 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 		fputc(';', stream);
 		break;
 	case AST_CALL:
-		transpile_c_ast(tp_c, ast->value.call.fun, indent, stream);
+		transpile_c_ast(tp_c, ast->value.call.name, indent, stream);
 		fputc('(', stream);
 		struct list* args = &ast->value.call.args;
 		for (size_t i = 0; i < args->size; ++i)
@@ -121,17 +131,18 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 	case AST_FNDEC: {
 		struct ast_fndec* fndec = &ast->value.fndec;
 		transpile_c_fndec(tp_c, ast, indent, stream);
-		fputc(' ', stream);
-		if (fndec->exp->ast_type == AST_SEQ)
+		if (fndec->exp == NULL)
+			fputc(';', stream);
+		else if (fndec->exp->ast_type == AST_SEQ)
 		{
-			fputc('{', stream);
+			fputs(" {", stream);
 			transpile_c_ast(tp_c, fndec->exp, indent + 1, stream);
 			transpile_c_newline_indent(stream, indent);
 			fputc('}', stream);
 		}
 		else
 		{
-			fputc('{', stream);
+			fputs(" {", stream);
 			transpile_c_newline_indent(stream, indent + 1);
 			transpile_c_ast(tp_c, fndec->exp, indent + 1, stream);
 			transpile_c_newline_indent(stream, indent);

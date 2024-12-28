@@ -2,7 +2,10 @@
 
 #define PARSER_FIRST_PROGRAM (PARSER_FIRST_STATEMENTS)
 #define PARSER_FIRST_STATEMENTS (PARSER_FIRST_STATEMENT)
-#define PARSER_FIRST_STATEMENT (PARSER_FIRST_EXP | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC | PARSER_FIRST_RET)
+#define PARSER_FIRST_STATEMENT (PARSER_FIRST_STATEMENT1 | PARSER_FIRST_ATTRS)
+#define PARSER_FIRST_STATEMENT1                                                                                        \
+	(PARSER_FIRST_EXP | PARSER_FIRST_MODDEC | PARSER_FIRST_IMPDEC | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC           \
+	 | PARSER_FIRST_RET)
 #define PARSER_FIRST_EXP                                                                                               \
 	(PARSER_FIRST_NUMLIT | PARSER_FIRST_STRLIT | PARSER_FIRST_VAR | PARSER_FIRST_OPS | PARSER_FIRST_CALL)
 #define PARSER_FIRST_SEXP (PARSER_FIRST_EXP)
@@ -10,12 +13,15 @@
 #define PARSER_FIRST_STRLIT (TOKEN_STRLIT)
 #define PARSER_FIRST_VAR (TOKEN_WORD)
 #define PARSER_FIRST_OPS (TOKEN_LPAREN | TOKEN_PLUS | TOKEN_MINUS)
-#define PARSER_FIRST_LEXP (PARSER_FIRST_VAR)
 #define PARSER_FIRST_TEXP (PARSER_FIRST_VAR)
+#define PARSER_FIRST_MODDEC (TOKEN_MODULE)
+#define PARSER_FIRST_IMPDEC (TOKEN_IMPORT)
 #define PARSER_FIRST_VARDEC (TOKEN_LET)
-#define PARSER_FIRST_CALL (PARSER_FIRST_LEXP)
+#define PARSER_FIRST_CALL (PARSER_FIRST_VAR)
 #define PARSER_FIRST_FNDEC (TOKEN_FN)
 #define PARSER_FIRST_RET (TOKEN_RET)
+#define PARSER_FIRST_ATTRS (PARSER_FIRST_ATTR)
+#define PARSER_FIRST_ATTR (TOKEN_AT)
 
 static inline enum token_type parser_peek_token(struct parser* parser, enum token_type type);
 static inline enum token_type parser_pop_token(struct parser* parser, enum token_type type);
@@ -30,13 +36,17 @@ static inline struct ast* parser_parse_sexp(struct parser* parser);
 static inline struct ast* parser_parse_numlit(struct parser* parser);
 static inline struct ast* parser_parse_strlit(struct parser* parser);
 static inline struct ast* parser_parse_var(struct parser* parser);
+static inline struct ast* parser_parse_mvar(struct parser* parser);
 static inline struct ast* parser_parse_ops(struct parser* parser);
-static inline struct ast* parser_parse_lexp(struct parser* parser);
 static inline struct ast* parser_parse_texp(struct parser* parser);
 static inline struct ast* parser_parse_vardec(struct parser* parser);
-static inline struct ast* parser_parse_call(struct parser* parser, struct ast* lexp);
+static inline struct ast* parser_parse_call(struct parser* parser, struct ast* var);
 static inline struct ast* parser_parse_fndec(struct parser* parser);
 static inline struct ast* parser_parse_ret(struct parser* parser);
+static inline struct ast* parser_parse_attrs(struct parser* parser);
+static inline struct ast* parser_parse_attr(struct parser* parser);
+static inline struct ast* parser_parse_moddec(struct parser* parser);
+static inline struct ast* parser_parse_impdec(struct parser* parser);
 
 bool parser_of_file(struct parser* parser, char const* filename) { return lexer_of_file(&parser->lexer, filename); }
 
@@ -124,7 +134,8 @@ static inline struct ast* parser_parse_statements(struct parser* parser)
 
 static inline struct ast* parser_parse_statement(struct parser* parser)
 {
-	DBG_ASSERT((PARSER_FIRST_SEXP | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC | PARSER_FIRST_RET)
+	DBG_ASSERT((PARSER_FIRST_SEXP | PARSER_FIRST_MODDEC | PARSER_FIRST_IMPDEC | PARSER_FIRST_VARDEC | PARSER_FIRST_FNDEC
+				| PARSER_FIRST_RET | PARSER_FIRST_ATTRS)
 				   == PARSER_FIRST_STATEMENT
 			   && "parser_parse_statement: missing case in parser");
 	DBG_ASSERT((PARSER_FIRST_SEXP & PARSER_FIRST_VARDEC) == 0 && "parser_parse_statement: invalid case in parser");
@@ -133,9 +144,20 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 	DBG_ASSERT((PARSER_FIRST_VARDEC & PARSER_FIRST_FNDEC) == 0 && "parser_parse_statement: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_VARDEC & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
 	DBG_ASSERT((PARSER_FIRST_FNDEC & PARSER_FIRST_RET) == 0 && "parser_parse_statement: invalid case in parser");
+
 	parser_skip_whitespace(parser);
 	struct token token = lexer_peek(&parser->lexer);
 	if (!parser_peek_token(parser, PARSER_FIRST_STATEMENT)) return ast_init(AST_ERROR, &token.loc);
+	struct ast* attrs = NULL;
+	if (token.type & PARSER_FIRST_ATTRS) attrs = parser_parse_attrs(parser);
+
+	parser_skip_whitespace(parser);
+	token = lexer_peek(&parser->lexer);
+	if (!parser_peek_token(parser, PARSER_FIRST_STATEMENT1))
+	{
+		ast_free(attrs);
+		return ast_init(AST_ERROR, &token.loc);
+	}
 	struct ast* statement = NULL;
 	if (token.type & PARSER_FIRST_VARDEC)
 		statement = parser_parse_vardec(parser);
@@ -145,6 +167,10 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 		statement = parser_parse_ret(parser);
 	else if (token.type & PARSER_FIRST_SEXP)
 		statement = parser_parse_sexp(parser);
+	else if (token.type & PARSER_FIRST_MODDEC)
+		statement = parser_parse_moddec(parser);
+	else if (token.type & PARSER_FIRST_IMPDEC)
+		statement = parser_parse_impdec(parser);
 	else
 		UNREACHABLE();
 	if (statement->ast_type == AST_ERROR)
@@ -152,6 +178,7 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 		parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 		parser_pop_token(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 	}
+	statement->attrs = attrs;
 	return statement;
 }
 
@@ -172,7 +199,7 @@ static inline struct ast* parser_parse_exp(struct parser* parser)
 	if (token.type & PARSER_FIRST_OPS) return parser_parse_ops(parser);
 	if (token.type & PARSER_FIRST_VAR)
 	{
-		struct ast* var = parser_parse_var(parser);
+		struct ast* var = parser_parse_mvar(parser);
 		parser_skip_whitespace(parser);
 		if (lexer_peek(&parser->lexer).type != TOKEN_LPAREN) return var;
 		return parser_parse_call(parser, var);
@@ -215,17 +242,34 @@ static inline struct ast* parser_parse_strlit(struct parser* parser)
 	return word;
 }
 
+static inline struct ast* parser_parse_mvar(struct parser* parser)
+{
+	struct ast* mvar = parser_parse_var(parser);
+	struct ast* last_var = mvar;
+	parser_skip_whitespace(parser);
+	while (lexer_peek(&parser->lexer).type == TOKEN_DOT)
+	{
+		lexer_pop(&parser->lexer);
+		struct ast* var = parser_parse_var(parser);
+		last_var->value.var.next = var;
+		last_var = var;
+		parser_skip_whitespace(parser);
+	}
+	return mvar;
+}
+
 static inline struct ast* parser_parse_var(struct parser* parser)
 {
 	parser_skip_whitespace(parser);
 	struct token token = lexer_peek(&parser->lexer);
 	if (!parser_peek_token(parser, TOKEN_WORD)) return ast_init(AST_ERROR, &token.loc);
 	lexer_pop(&parser->lexer);
-	struct ast* word = ast_init(AST_WORD, &token.loc);
-	vmove(&vtype_str, &word->value.word.str, &token.val.str);
-	word->value.word.dec = NULL;
+	struct ast* var = ast_init(AST_VAR, &token.loc);
+	vmove(&vtype_str, &var->value.var.name, &token.val.str);
+	var->value.var.dec = NULL;
+	var->value.var.next = NULL;
 	token_dtor(&token);
-	return word;
+	return var;
 }
 
 static inline struct ast* parser_parse_ops(struct parser* parser)
@@ -263,9 +307,7 @@ static inline struct ast* parser_parse_ops(struct parser* parser)
 	UNREACHABLE();
 }
 
-static inline struct ast* parser_parse_lexp(struct parser* parser) { return parser_parse_var(parser); }
-
-static inline struct ast* parser_parse_texp(struct parser* parser) { return parser_parse_var(parser); }
+static inline struct ast* parser_parse_texp(struct parser* parser) { return parser_parse_mvar(parser); }
 
 static inline struct ast* parser_parse_vardec(struct parser* parser)
 {
@@ -296,14 +338,15 @@ static inline struct ast* parser_parse_vardec(struct parser* parser)
 	return vardec;
 }
 
-static inline struct ast* parser_parse_call(struct parser* parser, struct ast* lexp)
+static inline struct ast* parser_parse_call(struct parser* parser, struct ast* var)
 {
-	if (!lexp)
+	if (!var)
 	{
-		lexp = parser_parse_lexp(parser);
+		var = parser_parse_mvar(parser);
+		parser_skip_whitespace(parser);
 		parser_pop_token(parser, TOKEN_LPAREN);
 	}
-	struct loc loc = lexp->loc;
+	struct loc loc = var->loc;
 	parser_skip_whitespace(parser);
 	parser_pop_token(parser, TOKEN_LPAREN);
 	struct list args;
@@ -321,7 +364,7 @@ static inline struct ast* parser_parse_call(struct parser* parser, struct ast* l
 	}
 	parser_pop_token(parser, TOKEN_RPAREN);
 	struct ast* call = ast_init(AST_CALL, &loc);
-	call->value.call.fun = lexp;
+	call->value.call.name = var;
 	vmove(&vtype_list, &call->value.call.args, &args);
 	return call;
 }
@@ -353,9 +396,12 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 			parser_skip_whitespace(parser);
 			targ = parser_parse_texp(parser);
 			parser_skip_whitespace(parser);
+			type = parser_peek_token(parser, TOKEN_COMA | TOKEN_RPAREN);
+			if (!type) return ast_init(AST_ERROR, &loc);
 		}
-		list_push_move(&args, arg);
-		list_push_move(&targs, targ);
+		if (type == TOKEN_COMA) lexer_pop(&parser->lexer);
+		list_push_move(&args, &arg);
+		list_push_move(&targs, &targ);
 	}
 	if (!parser_pop_token(parser, TOKEN_RPAREN)) return ast_init(AST_ERROR, &loc);
 	parser_skip_whitespace(parser);
@@ -388,9 +434,11 @@ static inline struct ast* parser_parse_fndec(struct parser* parser)
 		if (!parser_pop_token(parser, TOKEN_RCURLBRA)) return ast_init(AST_ERROR, &loc);
 		exp = seq;
 	}
+	else if (lexer_peek(&parser->lexer).type == TOKEN_SEMICOLON)
+		lexer_pop(&parser->lexer);
 	else
 		exp = parser_parse_statement(parser);
-	loc = LOC(loc, exp->loc);
+	if (exp != NULL) loc = LOC(loc, exp->loc);
 	struct ast* fndec = ast_init(AST_FNDEC, &loc);
 	vmove(&vtype_list, &fndec->value.fndec.args, &args);
 	vmove(&vtype_list, &fndec->value.fndec.targs, &targs);
@@ -414,4 +462,86 @@ static inline struct ast* parser_parse_ret(struct parser* parser)
 	struct ast* assign = ast_init(AST_RET, &loc);
 	assign->value.ret.exp = exp;
 	return assign;
+}
+
+static inline struct ast* parser_parse_attrs(struct parser* parser)
+{
+	struct ast* attrs = parser_parse_attr(parser);
+	parser_skip_whitespace(parser);
+	while (lexer_peek(&parser->lexer).type == TOKEN_AT)
+	{
+		struct ast* next = parser_parse_attr(parser);
+		next->attrs = attrs;
+		attrs = next;
+		parser_skip_whitespace(parser);
+	}
+	return attrs;
+}
+
+static inline struct ast* parser_parse_attr(struct parser* parser)
+{
+	parser_skip_whitespace(parser);
+	struct loc loc = lexer_peek(&parser->lexer).loc;
+	if (!parser_pop_token(parser, TOKEN_AT)) return ast_init(AST_ERROR, &loc);
+	struct ast* var = parser_parse_mvar(parser);
+	parser_skip_whitespace(parser);
+	struct list args;
+	list_ctor(&args, &vlist_upast, 16);
+	if (lexer_peek(&parser->lexer).type == TOKEN_LPAREN)
+	{
+		lexer_pop(&parser->lexer);
+		parser_skip_whitespace(parser);
+		while (lexer_peek(&parser->lexer).type & ~(TOKEN_RPAREN | TOKEN_EOF))
+		{
+			struct ast* exp = parser_parse_exp(parser);
+			loc = LOC(loc, exp->loc);
+			list_push_move(&args, &exp);
+			parser_skip_whitespace(parser);
+			if (lexer_peek(&parser->lexer).type != TOKEN_COMA) break;
+			lexer_pop(&parser->lexer);
+			parser_skip_whitespace(parser);
+		}
+		parser_pop_token(parser, TOKEN_RPAREN);
+	}
+	struct ast* call = ast_init(AST_ATTR, &loc);
+	call->value.attr.name = var;
+	vmove(&vtype_list, &call->value.attr.args, &args);
+	return call;
+}
+
+static inline struct ast* parser_parse_moddec(struct parser* parser)
+{
+	parser_skip_whitespace(parser);
+	struct loc loc = lexer_peek(&parser->lexer).loc;
+	if (!parser_pop_token(parser, TOKEN_MODULE)) return ast_init(AST_ERROR, &loc);
+	struct ast* name = parser_parse_mvar(parser);
+	loc = LOC(loc, name->loc);
+	parser_skip_whitespace(parser);
+	parser_pop_token(parser, TOKEN_SEMICOLON);
+	struct ast* moddec = ast_init(AST_MODDEC, &loc);
+	moddec->value.moddec.name = name;
+	return moddec;
+}
+
+static inline struct ast* parser_parse_impdec(struct parser* parser)
+{
+	parser_skip_whitespace(parser);
+	struct loc loc = lexer_peek(&parser->lexer).loc;
+	if (!parser_pop_token(parser, TOKEN_IMPORT)) return ast_init(AST_ERROR, &loc);
+	struct ast* mod_name = parser_parse_mvar(parser);
+	loc = LOC(loc, mod_name->loc);
+	parser_skip_whitespace(parser);
+	struct ast* as_name = NULL;
+	if (lexer_peek(&parser->lexer).type == TOKEN_AS)
+	{
+		lexer_pop(&parser->lexer);
+		as_name = parser_parse_mvar(parser);
+		loc = LOC(loc, as_name->loc);
+		parser_skip_whitespace(parser);
+	}
+	parser_pop_token(parser, TOKEN_SEMICOLON);
+	struct ast* moddec = ast_init(AST_MODDEC, &loc);
+	moddec->value.impdec.mod_name = mod_name;
+	moddec->value.impdec.as_name = as_name;
+	return moddec;
 }

@@ -11,12 +11,15 @@ enum ast_type
 	// exps
 	AST_NUMLIT,
 	AST_STRLIT,
-	AST_WORD,
+	AST_VAR,
 	AST_UNARY,
 	AST_CALL,
+	AST_ATTR,
 	// statements
 	AST_SEQ,
 	AST_SEXP,
+	AST_MODDEC,
+	AST_IMPDEC,
 	AST_VARDEC,
 	AST_FNDEC,
 	AST_RET,
@@ -32,9 +35,10 @@ struct ast_strlit
 	struct str str;
 };
 
-struct ast_word
+struct ast_var
 {
-	struct str str;
+	struct str name;
+	struct ast* next;
 	struct ast* dec;
 };
 
@@ -52,7 +56,13 @@ struct ast_unary
 
 struct ast_call
 {
-	struct ast* fun;
+	struct ast* name;
+	struct list args;
+};
+
+struct ast_attr
+{
+	struct ast* name;
 	struct list args;
 };
 
@@ -64,6 +74,17 @@ struct ast_seq
 struct ast_sexp
 {
 	struct ast* exp;
+};
+
+struct ast_moddec
+{
+	struct ast* name;
+};
+
+struct ast_impdec
+{
+	struct ast* mod_name;
+	struct ast* as_name;
 };
 
 struct ast_vardec
@@ -97,16 +118,20 @@ struct ast
 	{
 		struct ast_numlit numlit;
 		struct ast_strlit strlit;
-		struct ast_word word;
+		struct ast_var var;
 		struct ast_unary unary;
 		struct ast_call call;
+		struct ast_attr attr;
 		struct ast_seq seq;
 		struct ast_sexp sexp;
+		struct ast_moddec moddec;
+		struct ast_impdec impdec;
 		struct ast_vardec vardec;
 		struct ast_fndec fndec;
 		struct ast_ret ret;
 	} value;
 	struct type* type;
+	struct ast* attrs;
 };
 
 struct ast* ast_init(enum ast_type type, struct loc const* loc);

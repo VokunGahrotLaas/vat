@@ -280,11 +280,11 @@ static inline int main_parser(char const* source)
 	int r = parser.lexer.error || parser.error ? 1 : 0;
 	parser_dtor(&parser);
 
-	struct binder binder;
+	/*struct binder binder;
 	binder_ctor(&binder);
 	binder_bind(&binder, ast);
 	if (binder.error) r = 1;
-	binder_dtor(&binder);
+	binder_dtor(&binder);*/
 
 	ast_print(ast, stdout);
 	ast_free(ast);

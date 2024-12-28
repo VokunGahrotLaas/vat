@@ -44,7 +44,13 @@ parse_program = { statements NEWLINE } statements EOF;
 
 statements = { statement };
 
-statement =
+attrs = { attr };
+
+attr = "@" mvar [ "(" [ exp, [ "," exp ] ] ")" ];
+
+statement = attrs statement.1;
+
+statement.1 =
   sexp
 | var_dec
 | fun_dec
@@ -55,7 +61,11 @@ sexp = exp ";";
 
 ret = "ret" exp ";";
 
-var_dec = "let" lexp [ ":" texp ] "=" exp ";";
+mod_dec = "module" mvar ";";
+
+imp_dec = "import" mvar [ "as" var ] ";";
+
+var_dec = "let" var [ ":" texp ] "=" exp ";";
 
 fun_dec = "fn" var "(" fun_args ")" [ "->" texp ] block;
 
@@ -76,11 +86,13 @@ exp =
 | call_exp
 ;
 
-call_exp = var "(" [ exp { "," exp } ] ")";
+call_exp = mvar "(" [ exp { "," exp } ] ")";
 
-texp = var;
+texp = mvar;
 
-lexp = var;
+lexp = mvar;
+
+mvar = var { "." var };
 
 var = word;
 
@@ -99,6 +111,8 @@ ops =
 
 * arithmetic operators
 * basic types
+* modules
+* attributes (c\_name)
 
 ## TODO
 
@@ -106,9 +120,6 @@ ops =
 * structs
 * tagged unions
 * defer
-* attributes (c\_name)
-* external
-* modules
 * libc bindings/wrappers module ?
 * standard lib module
   * str
