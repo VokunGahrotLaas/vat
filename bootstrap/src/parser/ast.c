@@ -2,6 +2,8 @@
 
 // libc
 #include <stdlib.h>
+// bootstrap
+#include "post/type.h"
 
 static inline void ast_print_indent(FILE* stream, size_t indent);
 static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent);
@@ -12,6 +14,7 @@ struct ast* ast_init(enum ast_type type, struct loc const* loc)
 	if (!ast) return NULL;
 	ast->loc = loc ? *loc : LOC_INVALID;
 	ast->ast_type = type;
+	ast->type = NULL;
 	return ast;
 }
 
@@ -49,6 +52,7 @@ void ast_free(struct ast* ast)
 	}
 	case AST_RET: ast_free(ast->value.ret.exp); break;
 	};
+	type_free(ast->type);
 	free(ast);
 }
 

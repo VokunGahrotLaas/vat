@@ -8,6 +8,7 @@ struct binder
 {
 	struct sdict vars;
 	bool error;
+	bool first_seq;
 };
 
 bool binder_ctor(struct binder* binder);

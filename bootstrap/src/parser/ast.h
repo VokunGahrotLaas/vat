@@ -106,7 +106,7 @@ struct ast
 		struct ast_fndec fndec;
 		struct ast_ret ret;
 	} value;
-	// struct type* type;
+	struct type* type;
 };
 
 struct ast* ast_init(enum ast_type type, struct loc const* loc);
