@@ -55,7 +55,7 @@ static inline bool module_binder_bind_moddec(struct module_binder* binder, struc
 			if (!pair)
 			{
 				struct module* new_mod = module_init(name);
-				struct cv new_name = name;
+				struct cv new_name = cv_str(&new_mod->name);
 				new_mod->parent = mod;
 				mod = new_mod;
 				dict_add_move(mods, &new_name, &new_mod);
