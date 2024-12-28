@@ -15,7 +15,7 @@ struct ast* ast_init(enum ast_type type, struct loc const* loc)
 	ast->loc = loc ? *loc : LOC_INVALID;
 	ast->ast_type = type;
 	ast->type = NULL;
-	ast->attrs = NULL;
+	dict_ctor(&ast->attrs, &vdict_str_upast, 0);
 	return ast;
 }
 
@@ -66,7 +66,7 @@ void ast_free(struct ast* ast)
 	case AST_RET: ast_free(ast->value.ret.exp); break;
 	};
 	type_free(ast->type);
-	ast_free(ast->attrs);
+	dict_dtor(&ast->attrs);
 	free(ast);
 }
 
@@ -124,9 +124,17 @@ static inline void ast_print_impl(struct ast* ast, FILE* stream, size_t indent)
 		fputs("<NULL>", stream);
 		return;
 	}
-	if (ast->attrs)
+	bool first = true;
+	for (size_t i = 0; i < ast->attrs.pairs.size; ++i)
 	{
-		ast_print_impl(ast->attrs, stream, indent);
+		struct pair* pair = LIST_GET(&ast->attrs.pairs, struct pair, i);
+		if (pair_status(pair) != PAIR_SET) continue;
+		if (!first) fputc(' ', stream);
+		first = false;
+		ast_print_impl(*PAIR_VAL(pair, struct ast*), stream, indent);
+	}
+	if (!first)
+	{
 		fputc('\n', stream);
 		ast_print_indent(stream, indent);
 	}

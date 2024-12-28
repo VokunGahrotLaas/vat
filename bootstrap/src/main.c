@@ -7,7 +7,7 @@
 #include "backend/compile.h"
 #include "backend/transpile.h"
 #include "parser/parser.h"
-#include "post/binder.h"
+#include "post/module_binder.h"
 #include "utils/sdict.h"
 
 enum main_state
@@ -280,14 +280,17 @@ static inline int main_parser(char const* source)
 	int r = parser.lexer.error || parser.error ? 1 : 0;
 	parser_dtor(&parser);
 
-	/*struct binder binder;
-	binder_ctor(&binder);
-	binder_bind(&binder, ast);
-	if (binder.error) r = 1;
-	binder_dtor(&binder);*/
+	struct dict modules;
+	dict_ctor(&modules, &vdict_cv_upmodule, 16);
+
+	struct module_binder mbinder;
+	module_binder_ctor(&mbinder, &modules, cv_cstr(source));
+	module_binder_bind(&mbinder, ast);
+	if (mbinder.error) r = 1;
+	module_binder_dtor(&mbinder);
 
 	ast_print(ast, stdout);
-	ast_free(ast);
+	dict_dtor(&modules);
 	return r;
 }
 

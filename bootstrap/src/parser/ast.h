@@ -2,6 +2,7 @@
 
 // bootstrap
 #include "lexer/location.h"
+#include "utils/dict.h"
 #include "utils/list.h"
 #include "utils/str.h"
 
@@ -112,8 +113,6 @@ struct type;
 
 struct ast
 {
-	enum ast_type ast_type;
-	struct loc loc;
 	union ast_value
 	{
 		struct ast_numlit numlit;
@@ -130,8 +129,10 @@ struct ast
 		struct ast_fndec fndec;
 		struct ast_ret ret;
 	} value;
+	struct dict attrs;
+	struct loc loc;
 	struct type* type;
-	struct ast* attrs;
+	enum ast_type ast_type;
 };
 
 struct ast* ast_init(enum ast_type type, struct loc const* loc);
@@ -143,7 +144,12 @@ void unary_print(enum unary_type type, FILE* stream);
 
 bool seq_push(struct ast* seq, struct ast* ast);
 
+// impl
+
 VTYPE(vtype_past, struct ast*, NULL, NULL, NULL, NULL, NULL, NULL);
 VTYPE(vtype_upast, struct ast*, &ast_pdtor, &copy_fail, NULL, NULL, NULL, NULL);
 VLIST(vlist_past, struct ast*, &vtype_past);
 VLIST(vlist_upast, struct ast*, &vtype_upast);
+
+VPAIR(vpair_str_upast, &vtype_str, &vtype_upast);
+VDICT(vdict_str_upast, struct str, struct ast*, &vpair_str_upast);

@@ -10,7 +10,7 @@ fn write(fd: int, buf: str, count: size_t) -> ssize_t;
 
 @export
 @extern("c") @cname("read")
-fn write(fd: int, buf: str, count: size_t) -> ssize_t;
+fn read(fd: int, buf: str, count: size_t) -> ssize_t;
 
 @export
 @extern("c") @cname("close")

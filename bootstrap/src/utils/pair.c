@@ -41,8 +41,9 @@ bool pair_unset(struct pair* pair)
 
 void pair_dtor(struct pair* pair)
 {
+	enum pair_status status = pair_status(pair);
 	pair_set_status(pair, PAIR_NONE);
-	if (pair_status(pair) != PAIR_SET) return;
+	if (status != PAIR_SET) return;
 	struct vpair const* vpair = pair_vpair(pair);
 	vdtor(&vpair->vkey, pair_key(pair));
 	vdtor(&vpair->vval, pair_val(pair));

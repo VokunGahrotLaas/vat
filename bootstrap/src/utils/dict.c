@@ -25,7 +25,7 @@ bool dict_reserve(struct dict* dict, size_t size)
 		act_size <<= 1;
 	struct list pairs;
 	if (!vmove(&vtype_list, &pairs, &dict->pairs)) return false;
-	if (!list_ctor(&dict->pairs, &dict->vdict->vlist, size)) return false;
+	if (!list_ctor(&dict->pairs, &dict->vdict->vlist, act_size)) return false;
 	dict->pairs.size = act_size;
 	for (size_t i = 0; i < act_size; ++i)
 		if (!pair_ctor(list_get(&dict->pairs, i), &dict->vdict->vpair)) return false;
@@ -44,6 +44,7 @@ struct pair* dict_add_copy(struct dict* dict, pair_key_t const* key, pair_val_t 
 	if (!dict_reserve(dict, (dict->size + 1) * 2)) return false;
 	struct pair* pair = dict_find_new(dict, key);
 	DBG_ASSERT(pair && "could not find free pair in dict");
+	++dict->size;
 	if (pair_status(pair) == PAIR_SET) return NULL;
 	if (!pair_set_copy(pair, key, value)) return NULL;
 	return pair;
@@ -54,6 +55,7 @@ struct pair* dict_add_move(struct dict* dict, pair_key_t* key, pair_val_t* value
 	if (!dict_reserve(dict, (dict->size + 1) * 2)) return false;
 	struct pair* pair = dict_find_new(dict, key);
 	DBG_ASSERT(pair && "could not find free pair in dict");
+	++dict->size;
 	if (pair_status(pair) == PAIR_SET) return NULL;
 	if (!pair_set_move(pair, key, value)) return NULL;
 	return pair;
@@ -63,6 +65,7 @@ bool dict_remove(struct dict* dict, pair_key_t const* key)
 {
 	struct pair* pair = dict_find(dict, key);
 	if (!pair) return false;
+	--dict->size;
 	pair_unset(pair);
 	return true;
 }

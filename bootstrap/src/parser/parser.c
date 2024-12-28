@@ -43,7 +43,7 @@ static inline struct ast* parser_parse_vardec(struct parser* parser);
 static inline struct ast* parser_parse_call(struct parser* parser, struct ast* var);
 static inline struct ast* parser_parse_fndec(struct parser* parser);
 static inline struct ast* parser_parse_ret(struct parser* parser);
-static inline struct ast* parser_parse_attrs(struct parser* parser);
+static inline struct dict parser_parse_attrs(struct parser* parser);
 static inline struct ast* parser_parse_attr(struct parser* parser);
 static inline struct ast* parser_parse_moddec(struct parser* parser);
 static inline struct ast* parser_parse_impdec(struct parser* parser);
@@ -148,14 +148,19 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 	parser_skip_whitespace(parser);
 	struct token token = lexer_peek(&parser->lexer);
 	if (!parser_peek_token(parser, PARSER_FIRST_STATEMENT)) return ast_init(AST_ERROR, &token.loc);
-	struct ast* attrs = NULL;
-	if (token.type & PARSER_FIRST_ATTRS) attrs = parser_parse_attrs(parser);
+	struct dict attrs;
+	bool has_attrs = false;
+	if (token.type & PARSER_FIRST_ATTRS)
+	{
+		has_attrs = true;
+		attrs = parser_parse_attrs(parser);
+	}
 
 	parser_skip_whitespace(parser);
 	token = lexer_peek(&parser->lexer);
 	if (!parser_peek_token(parser, PARSER_FIRST_STATEMENT1))
 	{
-		ast_free(attrs);
+		if (has_attrs) dict_dtor(&attrs);
 		return ast_init(AST_ERROR, &token.loc);
 	}
 	struct ast* statement = NULL;
@@ -178,7 +183,11 @@ static inline struct ast* parser_parse_statement(struct parser* parser)
 		parser_skip_except(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 		parser_pop_token(parser, TOKEN_SEMICOLON | TOKEN_RCURLBRA);
 	}
-	statement->attrs = attrs;
+	if (has_attrs)
+	{
+		dict_dtor(&statement->attrs);
+		vmove(&vtype_dict, &statement->attrs, &attrs);
+	}
 	return statement;
 }
 
@@ -464,15 +473,31 @@ static inline struct ast* parser_parse_ret(struct parser* parser)
 	return assign;
 }
 
-static inline struct ast* parser_parse_attrs(struct parser* parser)
+static inline struct dict parser_parse_attrs(struct parser* parser)
 {
-	struct ast* attrs = parser_parse_attr(parser);
+	struct dict attrs;
+	dict_ctor(&attrs, &vdict_str_upast, 1);
+	struct ast* attr = parser_parse_attr(parser);
+	struct str name;
+	str_ctor(&name, 16);
+	for (struct ast* var = attr->value.attr.name; var != NULL; var = var->value.var.next)
+	{
+		if (var != attr->value.attr.name) str_pushc(&name, '.');
+		str_pushcv(&name, cv_str(&var->value.var.name));
+	}
+	dict_add_move(&attrs, &name, &attr);
 	parser_skip_whitespace(parser);
 	while (lexer_peek(&parser->lexer).type == TOKEN_AT)
 	{
-		struct ast* next = parser_parse_attr(parser);
-		next->attrs = attrs;
-		attrs = next;
+		attr = parser_parse_attr(parser);
+		struct str name;
+		str_ctor(&name, 16);
+		for (struct ast* var = attr->value.attr.name; var != NULL; var = var->value.var.next)
+		{
+			if (var != attr->value.attr.name) str_pushc(&name, '.');
+			str_pushcv(&name, cv_str(&var->value.var.name));
+		}
+		dict_add_move(&attrs, &name, &attr);
 		parser_skip_whitespace(parser);
 	}
 	return attrs;
