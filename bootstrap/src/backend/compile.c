@@ -6,18 +6,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-bool compile_c(char const* source, char const* dest)
+bool compile_c(struct list const* sources, char const* dest)
 {
-	char src_path[PATH_MAX];
-	char dst_path[PATH_MAX];
-	strncpy(src_path, source, PATH_MAX - 1);
-	strncpy(dst_path, dest, PATH_MAX - 1);
-	char* argv[] = {
-		"cc",
-		"-o",
-		dst_path,
-		src_path,
-	};
 	int pid = fork();
 	if (pid < 0)
 	{
@@ -26,7 +16,18 @@ bool compile_c(char const* source, char const* dest)
 	}
 	else if (pid == 0)
 	{
-		execvp(*argv, argv);
+		struct list argv;
+		list_ctor(&argv, &vlist_pchar, 16);
+		char cc[] = "cc";
+		char dash_o[] = "-o";
+		char* ccp = cc;
+		char* dop = dash_o;
+		list_push_copy(&argv, &ccp);
+		list_push_copy(&argv, &dop);
+		list_push_copy(&argv, &dest);
+		for (size_t i = 0; i < sources->size; ++i)
+			list_push_copy(&argv, LIST_CGET(sources, char*, i));
+		execvp(*(char**)argv.data, argv.data);
 		err(1, "execvp() failed");
 	}
 	int status = 0;

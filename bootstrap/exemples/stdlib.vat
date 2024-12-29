@@ -33,10 +33,3 @@ fn print(s: str)
 {
 	write(STDOUT, s, strlen(s));
 }
-
-@export @cname("main")
-fn main() -> int
-{
-	print("Hello World!\n");
-	ret 0;
-}

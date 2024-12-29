@@ -1,0 +1,10 @@
+module main;
+
+import std.io as io;
+
+@export @cname("main")
+fn main() -> int
+{
+	io.print("Hello World!\n");
+	ret 0;
+}

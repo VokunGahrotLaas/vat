@@ -102,7 +102,7 @@ static inline enum cmp_result cv_cmp(struct cv lhs, struct cv rhs)
 
 static inline bool str_ctor(struct str* str, size_t capacity)
 {
-	str->data = capacity != 0 ? malloc((capacity + 1) * sizeof(char)) : str_empty_impl;
+	str->data = capacity != 0 ? calloc(capacity + 1, sizeof(char)) : str_empty_impl;
 	str->capacity = capacity;
 	str->size = 0;
 	return str->data != NULL;

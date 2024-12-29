@@ -567,7 +567,7 @@ static inline struct ast* parser_parse_impdec(struct parser* parser)
 		parser_skip_whitespace(parser);
 	}
 	parser_pop_token(parser, TOKEN_SEMICOLON);
-	struct ast* impdec = ast_init(AST_MODDEC, &loc);
+	struct ast* impdec = ast_init(AST_IMPDEC, &loc);
 	impdec->value.impdec.mod_name = mod_name;
 	impdec->value.impdec.as_name = as_name;
 	impdec->value.impdec.module = NULL;

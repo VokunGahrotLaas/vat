@@ -8,8 +8,11 @@ struct transpiler_c
 {
 	FILE* prelude;
 	FILE* stream;
+	FILE* header;
 	bool error;
 	bool first_seq;
+	struct dict* modules;
+	struct cv dest;
 };
 
 static inline void transpile_c_newline_indent(FILE* stream, size_t indent);
@@ -18,8 +21,9 @@ static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast,
 static inline bool transpile_c_vardec(struct transpiler_c* tp_c, struct ast* ast, size_t indent, FILE* stream);
 static inline bool sendfile_check(int fdout, int fdin, size_t size);
 static inline bool transpile_c_builtin_var(struct cv name, FILE* stream);
+static inline void add_headers(FILE* stream, struct module* mod);
 
-bool transpile_c(struct ast* ast, char const* filename)
+bool transpile_c(struct ast* ast, char const* filename, struct dict* modules)
 {
 	FILE* stream = fopen(filename, "w");
 	if (!stream)
@@ -27,12 +31,33 @@ bool transpile_c(struct ast* ast, char const* filename)
 		fprintf(stderr, "could not open \"%s\" for writing\n", filename);
 		return false;
 	}
-	fputs("#include <stdint.h>\n#include <stddef.h>\n#include <sys/types.h>\n\n", stream);
+	struct str header_filename;
+	str_of_cv(&header_filename, cv_cstr(filename));
+	str_pushcv(&header_filename, cv_cstr(".h"));
+	FILE* header = fopen(header_filename.data, "w");
+	if (!header)
+	{
+		fclose(stream);
+		fprintf(stderr, "could not open \"%s\" for writing\n", header_filename.data);
+		return false;
+	}
+	str_dtor(&header_filename);
+	for (size_t i = 0; i < modules->pairs.size; ++i)
+	{
+		struct pair* pair = LIST_GET(&modules->pairs, struct pair, i);
+		if (pair_status(pair) != PAIR_SET) continue;
+		add_headers(stream, *PAIR_VAL(pair, struct module*));
+	}
+	fputc('\n', stream);
+	fputs("#pragma once\n#include <stdint.h>\n#include <stddef.h>\n#include <sys/types.h>\n\n", header);
 	struct transpiler_c tp_c;
 	tp_c.error = false;
 	tp_c.first_seq = true;
 	tp_c.prelude = stream;
 	tp_c.stream = fdopen(memfd_create("transpiler_c", 0), "wr");
+	tp_c.header = header;
+	tp_c.modules = modules;
+	tp_c.dest = cv_cstr(filename);
 	bool r = transpile_c_ast(&tp_c, ast, 0, tp_c.stream);
 	long size = ftell(tp_c.stream);
 	fseek(tp_c.stream, 0, SEEK_SET);
@@ -42,7 +67,19 @@ bool transpile_c(struct ast* ast, char const* filename)
 	fclose(tp_c.stream);
 	fprintf(stream, "\n");
 	fclose(stream);
+	fclose(header);
 	return r;
+}
+
+static inline void add_headers(FILE* stream, struct module* mod)
+{
+	if (mod->exports.size > 0) fprintf(stream, "#include \"%s.h\"\n\n", mod->compiled_file.data);
+	for (size_t i = 0; i < mod->children.pairs.size; ++i)
+	{
+		struct pair* pair = LIST_GET(&mod->children.pairs, struct pair, i);
+		if (pair_status(pair) != PAIR_SET) continue;
+		add_headers(stream, *PAIR_VAL(pair, struct module*));
+	}
 }
 
 static inline void transpile_c_newline_indent(FILE* stream, size_t indent)
@@ -57,8 +94,8 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 	switch (ast->ast_type)
 	{
 	case AST_ATTR: FALLTHROUGH;
-	case AST_MODDEC: FALLTHROUGH;
 	case AST_IMPDEC: FALLTHROUGH;
+	case AST_MODDEC: FALLTHROUGH;
 	case AST_ERROR: break;
 	case AST_NUMLIT: fprintf(stream, "%" PRIu64, ast->value.numlit.u64); break;
 	case AST_STRLIT:
@@ -89,21 +126,30 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 			for (size_t i = 0; i < list->size; ++i)
 			{
 				struct ast* exp = *LIST_GET(list, struct ast*, i);
+				struct cv expo = cv_cstr("export");
 				struct cv ext = cv_cstr("extern");
 				if (exp->ast_type == AST_FNDEC)
 				{
-					if (dict_find(&exp->attrs, &ext) != NULL)
-						fputs("__attribute__((visibility(\"default\")))\n", tp_c->prelude);
-					else
+					if (dict_find(&exp->attrs, &expo) != NULL)
+					{
+						fputs("extern ", tp_c->header);
+						transpile_c_fndec(tp_c, exp, 0, tp_c->header);
+						fputs(";\n", tp_c->header);
+					}
+					else if (dict_find(&exp->attrs, &ext) == NULL)
 						fputs("__attribute__((visibility(\"hidden\")))\n", tp_c->prelude);
 					transpile_c_fndec(tp_c, exp, 0, tp_c->prelude);
 					fputs(";\n", tp_c->prelude);
 				}
 				else if (exp->ast_type == AST_VARDEC)
 				{
-					if (dict_find(&exp->attrs, &ext) != NULL)
-						fputs("__attribute__((visibility(\"default\")))\n", tp_c->prelude);
-					else
+					if (dict_find(&exp->attrs, &expo) != NULL)
+					{
+						fputs("extern ", tp_c->header);
+						transpile_c_vardec(tp_c, exp, 0, tp_c->header);
+						fputs(";\n", tp_c->header);
+					}
+					else if (dict_find(&exp->attrs, &ext) == NULL)
 						fputs("__attribute__((visibility(\"hidden\")))\n", tp_c->prelude);
 					transpile_c_vardec(tp_c, exp, 0, tp_c->prelude);
 					fputs(";\n", tp_c->prelude);
@@ -176,7 +222,7 @@ static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast,
 {
 	struct ast_fndec* fndec = &ast->value.fndec;
 	struct cv ext = cv_cstr("extern");
-	if (dict_find(&ast->attrs, &ext) != NULL) fputs("extern ", stream);
+	if (dict_find(&ast->attrs, &ext) != NULL && tp_c->header != stream) fputs("extern ", stream);
 	if (fndec->texp)
 		transpile_c_ast(tp_c, fndec->texp, indent, stream);
 	else

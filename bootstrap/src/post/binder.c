@@ -161,7 +161,9 @@ static bool binder_bind_dec_var(struct binder* binder, struct ast* dec, struct a
 {
 	switch (dec->ast_type)
 	{
-	case AST_IMPDEC: return binder_bind_mod_var(binder, dec->value.impdec.module, var);
+	case AST_IMPDEC:
+		DBG_ASSERT(dec->value.impdec.module != NULL);
+		return binder_bind_mod_var(binder, dec->value.impdec.module, var);
 	case AST_VARDEC:
 		warnx("binder: cannot use the dot operator on variables");
 		binder->error = true;
