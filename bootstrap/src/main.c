@@ -423,11 +423,6 @@ static inline int main_compile_c(char const** sources, char const* dest, struct 
 	char tmp_file[] = "/tmp/vatc-transpile_c-XXXXXX.c";
 	if (!mkstemps(tmp_file, 2)) return 1;
 	int r = main_transpile_c(sources, tmp_file, backend);
-	if (r)
-	{
-		unlink(tmp_file);
-		return r;
-	}
 	struct list srcs;
 	list_ctor(&srcs, &vlist_pchar, 16);
 	for (size_t i = 0; i < backend->modules.pairs.size; ++i)
@@ -437,9 +432,32 @@ static inline int main_compile_c(char const** sources, char const* dest, struct 
 		struct module* mod = *PAIR_VAL(pair, struct module*);
 		add_sources(&srcs, mod);
 	}
+	if (r)
+	{
+		for (size_t i = 0; i < srcs.size; ++i)
+		{
+			char* file = *LIST_GET(&srcs, char*, i);
+			unlink(file);
+			struct str header;
+			str_of_cv(&header, cv_cstr(file));
+			str_pushcv(&header, cv_cstr(".h"));
+			unlink(header.data);
+			str_dtor(&header);
+		}
+		return r;
+	}
 	r = !(*backend->compile)(&srcs, dest) ? 1 : 0;
+	for (size_t i = 0; i < srcs.size; ++i)
+	{
+		char* file = *LIST_GET(&srcs, char*, i);
+		unlink(file);
+		struct str header;
+		str_of_cv(&header, cv_cstr(file));
+		str_pushcv(&header, cv_cstr(".h"));
+		unlink(header.data);
+		str_dtor(&header);
+	}
 	list_dtor(&srcs);
-	unlink(tmp_file);
 	return r;
 }
 
