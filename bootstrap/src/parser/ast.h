@@ -86,6 +86,7 @@ struct ast_impdec
 {
 	struct ast* mod_name;
 	struct ast* as_name;
+	struct module* module;
 };
 
 struct ast_vardec

@@ -54,6 +54,8 @@ bool dict_reserve(struct dict* dict, size_t size)
 		pair_set_status(pair, PAIR_UNSET);
 		if (!dict_add_move(dict, pair_key(pair), pair_val(pair))) return false;
 	}
+	pairs.size = 0;
+	list_dtor(&pairs);
 	return true;
 }
 

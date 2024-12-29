@@ -307,10 +307,10 @@ static inline int main_parser(char const* source)
 	if (binder.error) r = 1;
 	binder_dtor(&binder);
 
-	dict_dtor(&modules);
-
 	ast_print(ast, stdout);
 	ast_free(ast);
+
+	dict_dtor(&modules);
 	return r;
 }
 
@@ -321,9 +321,27 @@ static inline int main_transpile_c(char const* source, char const* dest, struct 
 	struct ast* ast = parser_parse(&parser);
 	int r = parser.lexer.error || parser.error ? 1 : 0;
 	parser_dtor(&parser);
+
+	struct dict modules;
+	dict_ctor(&modules, &vdict_cv_upmodule, 16);
+
+	struct module_binder mbinder;
+	module_binder_ctor(&mbinder, &modules, cv_cstr(source));
+	module_binder_bind(&mbinder, ast);
+	if (mbinder.error) r = 1;
+	module_binder_dtor(&mbinder);
+
+	struct binder binder;
+	binder_ctor(&binder, &modules);
+	binder_bind(&binder, ast);
+	if (binder.error) r = 1;
+	binder_dtor(&binder);
+
 	if (r) return r;
 	r = !(*backend->transpile)(ast, dest) ? 1 : 0;
 	ast_free(ast);
+
+	dict_dtor(&modules);
 	return r;
 }
 

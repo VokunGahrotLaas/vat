@@ -15,3 +15,28 @@ fn read(fd: int, buf: str, count: size_t) -> ssize_t;
 @export
 @extern("c") @cname("close")
 fn close(fd: int) -> int;
+
+@export
+let STDIN: int = 0;
+
+@export
+let STDOUT: int = 1;
+
+@export
+let STDERR: int = 2;
+
+@extern("c") @cname("strlen")
+fn strlen(s: str) -> size_t;
+
+@export
+fn print(s: str)
+{
+	write(STDOUT, s, strlen(s));
+}
+
+@export @cname("main")
+fn main() -> int
+{
+	print("Hello World!\n");
+	ret 0;
+}

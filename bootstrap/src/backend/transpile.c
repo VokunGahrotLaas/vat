@@ -17,6 +17,7 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast, size_t indent, FILE* stream);
 static inline bool transpile_c_vardec(struct transpiler_c* tp_c, struct ast* ast, size_t indent, FILE* stream);
 static inline bool sendfile_check(int fdout, int fdin, size_t size);
+static inline bool transpile_c_builtin_var(struct cv name, FILE* stream);
 
 bool transpile_c(struct ast* ast, char const* filename)
 {
@@ -26,7 +27,7 @@ bool transpile_c(struct ast* ast, char const* filename)
 		fprintf(stderr, "could not open \"%s\" for writing\n", filename);
 		return false;
 	}
-	fprintf(stream, "#include <stdio.h>\n\n");
+	fputs("#include <stdint.h>\n#include <stddef.h>\n#include <sys/types.h>\n\n", stream);
 	struct transpiler_c tp_c;
 	tp_c.error = false;
 	tp_c.first_seq = true;
@@ -66,12 +67,15 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 		fputc('"', stream);
 		break;
 	case AST_VAR:
-		cv_print(cv_str(&ast->value.var.name), stream);
-		if (ast->value.var.next)
-		{
-			fputc('.', stream);
-			return transpile_c_ast(tp_c, ast->value.var.next, indent, stream);
-		}
+		if (ast->value.var.next != NULL) return transpile_c_ast(tp_c, ast->value.var.next, indent, stream);
+		if (ast->value.var.dec == NULL) return transpile_c_builtin_var(cv_str(&ast->value.var.name), stream);
+		struct cv cname = cv_cstr("cname");
+		struct pair* pair = dict_find(&ast->value.var.dec->attrs, &cname);
+		if (!pair)
+			cv_print(cv_str(&ast->value.var.name), stream);
+		else
+			str_print(&(*LIST_GET(&(*PAIR_VAL(pair, struct ast*))->value.attr.args, struct ast*, 0))->value.strlit.str,
+					  stream);
 		break;
 	case AST_UNARY:
 		fputc((ast->value.unary.op == UNARY_PLUS ? '+' : '-'), stream);
@@ -85,13 +89,22 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 			for (size_t i = 0; i < list->size; ++i)
 			{
 				struct ast* exp = *LIST_GET(list, struct ast*, i);
+				struct cv ext = cv_cstr("extern");
 				if (exp->ast_type == AST_FNDEC)
 				{
+					if (dict_find(&exp->attrs, &ext) != NULL)
+						fputs("__attribute__((visibility(\"default\")))\n", tp_c->prelude);
+					else
+						fputs("__attribute__((visibility(\"hidden\")))\n", tp_c->prelude);
 					transpile_c_fndec(tp_c, exp, 0, tp_c->prelude);
 					fputs(";\n", tp_c->prelude);
 				}
 				else if (exp->ast_type == AST_VARDEC)
 				{
+					if (dict_find(&exp->attrs, &ext) != NULL)
+						fputs("__attribute__((visibility(\"default\")))\n", tp_c->prelude);
+					else
+						fputs("__attribute__((visibility(\"hidden\")))\n", tp_c->prelude);
 					transpile_c_vardec(tp_c, exp, 0, tp_c->prelude);
 					fputs(";\n", tp_c->prelude);
 				}
@@ -162,6 +175,8 @@ static inline bool transpile_c_ast(struct transpiler_c* tp_c, struct ast* ast, s
 static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast, size_t indent, FILE* stream)
 {
 	struct ast_fndec* fndec = &ast->value.fndec;
+	struct cv ext = cv_cstr("extern");
+	if (dict_find(&ast->attrs, &ext) != NULL) fputs("extern ", stream);
 	if (fndec->texp)
 		transpile_c_ast(tp_c, fndec->texp, indent, stream);
 	else
@@ -174,10 +189,7 @@ static inline bool transpile_c_fndec(struct transpiler_c* tp_c, struct ast* ast,
 	{
 		if (i != 0) fputs(", ", stream);
 		struct ast* vardec = *LIST_GET(&fndec->args, struct ast*, i);
-		if (!transpile_c_ast(tp_c, vardec->value.vardec.name, indent, stream)) return false;
-		if (!vardec->value.vardec.texp) continue;
-		fputs(": ", stream);
-		if (!transpile_c_ast(tp_c, vardec->value.vardec.texp, indent, stream)) return false;
+		if (!transpile_c_vardec(tp_c, vardec, indent, stream)) return false;
 	}
 	fputc(')', stream);
 	return true;
@@ -202,4 +214,13 @@ static inline bool sendfile_check(int fdout, int fdin, size_t size)
 		nsent += sendfile(fdout, fdin, NULL, size - nsent);
 	if (nsent == -1) warn("sendfile() failed");
 	return nsent != -1;
+}
+
+static inline bool transpile_c_builtin_var(struct cv name, FILE* stream)
+{
+	if (cv_cmp(name, cv_cstr("str")) == 0)
+		fputs("char const*", stream);
+	else
+		cv_print(name, stream);
+	return true;
 }
