@@ -2,34 +2,34 @@ module std.io;
 
 @export
 @extern("c") @cname("open")
-fn open(filename: str, flags: int, mode: int) -> int;
+fn c_open(filename: str, flags: int, mode: int) -> int;
 
 @export
 @extern("c") @cname("write")
-fn write(fd: int, buf: str, count: size_t) -> ssize_t;
+fn c_write(fd: int, buf: str, count: size_t) -> ssize_t;
 
 @export
 @extern("c") @cname("read")
-fn read(fd: int, buf: str, count: size_t) -> ssize_t;
+fn c_read(fd: int, buf: str, count: size_t) -> ssize_t;
 
 @export
 @extern("c") @cname("close")
-fn close(fd: int) -> int;
+fn c_close(fd: int) -> int;
 
 @export
-let STDIN: int = 0;
+let c_STDIN: int = 0;
 
 @export
-let STDOUT: int = 1;
+let c_STDOUT: int = 1;
 
 @export
-let STDERR: int = 2;
+let c_STDERR: int = 2;
 
 @extern("c") @cname("strlen")
-fn strlen(s: str) -> size_t;
+fn c_strlen(s: str) -> size_t;
 
 @export
 fn print(s: str)
 {
-	write(STDOUT, s, strlen(s));
+	c_write(c_STDOUT, s, c_strlen(s));
 }
