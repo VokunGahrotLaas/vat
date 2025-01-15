@@ -20,6 +20,7 @@ enum main_state
 	MAIN_PRINT_AST,
 	MAIN_TRANSPILE,
 	MAIN_COMPILE,
+	MAIN_LINK,
 	MAIN_RUN,
 	MAIN_CHECK,
 };
@@ -30,23 +31,30 @@ enum backend
 	BACKEND_C,
 };
 
-typedef bool backend_transpile_t(struct ast* ast, char const* dest, struct dict* modules);
-typedef bool backend_compile_t(struct list const* sources, char const* dest);
+typedef bool backend_transpile_prelude_t(FILE* stream, struct dict* modules);
+typedef bool backend_transpile_exports_t(struct ast* ast, FILE* stream, struct dict* modules);
+typedef bool backend_transpile_symbols_t(struct ast* ast, FILE* stream, struct dict* modules);
+typedef bool backend_transpile_code_t(struct ast* ast, FILE* stream, struct dict* modules);
+typedef bool backend_compile_t(char const* source, char const* dest);
+typedef bool backend_link_t(struct list const* objs, char const* dest);
 
 struct vbackend
 {
 	struct dict modules;
-	backend_transpile_t* transpile;
+	backend_transpile_prelude_t* transpile_prelude;
+	backend_transpile_exports_t* transpile_exports;
+	backend_transpile_symbols_t* transpile_symbols;
+	backend_transpile_code_t* transpile_code;
 	backend_compile_t* compile;
+	backend_link_t* link;
 };
-
-VLIST(vlist_cv, struct cv, &vtype_cv);
 
 static inline int main_help(char const* name, FILE* stream, int r);
 static inline int main_lexer(char const** sources);
 static inline int main_parser(char const** sources);
 static inline int main_transpile_c(char const** sources, char const* dest, struct vbackend* backend);
 static inline int main_compile_c(char const** sources, char const* dest, struct vbackend* backend);
+static inline int main_link_c(char const** sources, char const* dest, struct vbackend* backend);
 static inline int main_run_c(char const** sources, struct vbackend* backend);
 static inline int main_check(char const** sources);
 static inline int main_check_dict(void);
@@ -63,28 +71,37 @@ int main(int argc, char** argv)
 	enum backend backend = BACKEND_NONE;
 	struct vbackend vbackend[] = {
 		[BACKEND_NONE] = {
-			.transpile = &transpile_c,
+			.transpile_prelude = &transpile_c_prelude,
+			.transpile_exports = &transpile_c_exports,
+			.transpile_symbols = &transpile_c_symbols,
+			.transpile_code = &transpile_c_code,
 			.compile = &compile_c,
+			.link = &link_c,
 		},
 		[BACKEND_C] = {
-			.transpile = &transpile_c,
+			.transpile_prelude = &transpile_c_prelude,
+			.transpile_exports = &transpile_c_exports,
+			.transpile_symbols = &transpile_c_symbols,
+			.transpile_code = &transpile_c_code,
 			.compile = &compile_c,
+			.link = &link_c,
 		},
 	};
 
 	struct option l_opt[] = {
 		{ "transpile",	   no_argument,		NULL, 't' },
-		 { "compile",	  no_argument,	   NULL, 'c' },
+		{ "compile",		 no_argument,		  NULL, 'c' },
+		{ "link",		  no_argument,	   NULL, 'l' },
 		{ "run",			 no_argument,		  NULL, 'r' },
-		 { "print-ast",	no_argument,		 NULL, 'A' },
+		{ "print-ast",	   no_argument,		NULL, 'A' },
 		{ "print-tokens", no_argument,	   NULL, 'T' },
-		 { "check",		no_argument,		 NULL, 'C' },
+		{ "check",		   no_argument,		NULL, 'C' },
 		{ "help",		  no_argument,	   NULL, 'h' },
-		 { "output",		 required_argument, NULL, 'o' },
+		{ "output",		required_argument, NULL, 'o' },
 		{ "backend",		 required_argument, NULL, 'b' },
-		 { NULL,			 0,					NULL, 0	},
+		{ NULL,			0,				   NULL, 0   },
 	};
-	char const* s_opt = "tcrATCho:b:";
+	char const* s_opt = "tclrATCho:b:";
 	int c_opt = -1;
 	while ((c_opt = getopt_long(argc, argv, s_opt, l_opt, NULL)) != -1)
 	{
@@ -122,6 +139,16 @@ int main(int argc, char** argv)
 			}
 			else
 				state = MAIN_COMPILE;
+		}
+		else if (c_opt == 'l')
+		{
+			if (state != MAIN_NONE && state != MAIN_LINK)
+			{
+				state = MAIN_ERROR;
+				warnx("-l cannot be combined with other actions");
+			}
+			else
+				state = MAIN_LINK;
 		}
 		else if (c_opt == 't')
 		{
@@ -200,7 +227,8 @@ int main(int argc, char** argv)
 		sources = (char const**)&argv[optind];
 		optind = argc;
 	}
-	if (!(state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_TRANSPILE) && output && state != MAIN_ERROR)
+	if (!(state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_LINK || state == MAIN_TRANSPILE) && output
+		&& state != MAIN_ERROR)
 	{
 		state = MAIN_ERROR;
 		warnx("this action does not support -o");
@@ -211,15 +239,15 @@ int main(int argc, char** argv)
 		warnx("too many arguments (%i)", argc - optind);
 	}
 
-	if ((state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_TRANSPILE) && !output && sources
-		&& state != MAIN_ERROR)
+	if ((state == MAIN_NONE || state == MAIN_COMPILE || state == MAIN_LINK || state == MAIN_TRANSPILE) && !output
+		&& sources && state != MAIN_ERROR)
 	{
 		char* src = basename(*sources);
 		size_t len = strlen(src);
 		str_ctor(&output_str, len);
 		bool has_dot_vat = len > 4 && strcmp(src + len - 4, ".vat") == 0;
 		str_pushcv(&output_str, (struct cv){ src, len - (has_dot_vat ? 4 : 0) });
-		str_pushcv(&output_str, cv_cstr(state == MAIN_TRANSPILE ? ".c" : ".out"));
+		str_pushcv(&output_str, cv_cstr(state == MAIN_TRANSPILE ? ".c" : state == MAIN_COMPILE ? ".o" : ".out"));
 		output = output_str.data;
 	}
 
@@ -230,9 +258,10 @@ int main(int argc, char** argv)
 	{
 	case MAIN_ERROR: r = main_help(*argv, stderr, 1); break;
 	case MAIN_HELP: r = main_help(*argv, stdout, 0); break;
-	case MAIN_NONE: FALLTHROUGH;
 	case MAIN_COMPILE: r = main_compile_c(sources, output, &vbackend[backend]); break;
 	case MAIN_TRANSPILE: r = main_transpile_c(sources, output, &vbackend[backend]); break;
+	case MAIN_NONE: FALLTHROUGH;
+	case MAIN_LINK: r = main_link_c(sources, output, &vbackend[backend]); break;
 	case MAIN_RUN: r = main_run_c(sources, &vbackend[backend]); break;
 	case MAIN_PRINT_AST: r = main_parser(sources); break;
 	case MAIN_PRINT_TOKENS: r = main_lexer(sources); break;
@@ -252,7 +281,8 @@ static inline int main_help(char const* name, FILE* stream, int r)
 	fprintf(stream, "  -o/--output <file>: specify output file\n");
 	fprintf(stream, "  -b/--backend C: specify backend type (only C for now)\n");
 	fprintf(stream, "  -t/--transpile: transpile source to backend\n");
-	fprintf(stream, "  -c/--compile: compile source to executable with backend (default)\n");
+	fprintf(stream, "  -c/--compile: compile source to object file with backend\n");
+	fprintf(stream, "  -l/--link: compile source to executable with backend (default)\n");
 	fprintf(stream, "  -r/--run: run compiled code\n");
 	fprintf(stream, "  -T/--print-tokens: print all the tokens from the source\n");
 	fprintf(stream, "  -T/--print-ast: print the AST from the source (displayed as source code)\n");
@@ -348,10 +378,17 @@ static inline int main_transpile_c(char const** sources, char const* dest, struc
 	int r = 0;
 	dict_ctor(&backend->modules, &vdict_cv_upmodule, 16);
 
-	struct list dests;
-	list_ctor(&dests, &vlist_cv, 16);
+	FILE* stream = fopen(dest, "w");
+	if (!stream)
+	{
+		fprintf(stderr, "could not open \"%s\" for writing\n", dest);
+		return 1;
+	}
 
-	for (char const** source = sources; *source; ++source)
+	fprintf(stderr, "transpiling prelude\n");
+	if (!(*backend->transpile_prelude)(stream, &backend->modules)) r = 1;
+
+	for (char const** source = sources + 1; *source; ++source)
 	{
 		fprintf(stderr, "parsing module from: %s\n", *source);
 		struct parser parser;
@@ -360,23 +397,13 @@ static inline int main_transpile_c(char const** sources, char const* dest, struc
 		if (parser.lexer.error || parser.error) r = 1;
 		parser_dtor(&parser);
 
+		fprintf(stderr, "binding module from: %s\n", *source);
 		struct module_binder mbinder;
 		module_binder_ctor(&mbinder, &backend->modules, cv_cstr(*source));
 		module_binder_bind(&mbinder, ast);
 		struct module* module = mbinder.module;
 		if (mbinder.error) r = 1;
 		module_binder_dtor(&mbinder);
-
-		char tmp_file[] = "/tmp/vatc-transpile_c-XXXXXX.c";
-		if (source != sources)
-		{
-			if (!mkstemps(tmp_file, 2)) return 1;
-			str_pushcv(&module->compiled_file, cv_cstr(tmp_file));
-		}
-		else
-			str_pushcv(&module->compiled_file, cv_cstr(dest));
-		struct cv dst = cv_str(&module->compiled_file);
-		list_push_move(&dests, &dst);
 
 		fputs("module_name: ", stderr);
 		module_print(module, stderr);
@@ -391,85 +418,113 @@ static inline int main_transpile_c(char const** sources, char const* dest, struc
 		ast_free(ast);
 	}
 
-	size_t i = 0;
-	for (char const** source = sources; *source; ++source, ++i)
+	fprintf(stderr, "parsing module from: %s\n", *sources);
+	struct parser parser;
+	parser_of_file(&parser, *sources);
+	struct ast* ast = parser_parse(&parser);
+	if (parser.lexer.error || parser.error) r = 1;
+	parser_dtor(&parser);
+
+	fprintf(stderr, "binding module from: %s\n", *sources);
+	struct module_binder mbinder;
+	module_binder_ctor(&mbinder, &backend->modules, cv_cstr(*sources));
+	module_binder_bind(&mbinder, ast);
+	struct module* module = mbinder.module;
+	if (mbinder.error) r = 1;
+	module_binder_dtor(&mbinder);
+
+	fputs("module_name: ", stderr);
+	module_print(module, stderr);
+	fputc('\n', stderr);
+	fputs("exports_names: ", stderr);
+	dict_print(&module->exports_names, stderr);
+	fputc('\n', stderr);
+	fputs("exports: ", stderr);
+	dict_print(&module->exports, stderr);
+	fputc('\n', stderr);
+
+	for (char const** source = sources + 1; *source; ++source)
 	{
-		fprintf(stderr, "binding code from: %s\n", *source);
+		fprintf(stderr, "reparsing module from: %s\n", *source);
 		struct parser parser;
 		parser_of_file(&parser, *source);
 		struct ast* ast = parser_parse(&parser);
 		if (parser.lexer.error || parser.error) r = 1;
 		parser_dtor(&parser);
 
+		fprintf(stderr, "binding: %s\n", *source);
 		struct binder binder;
 		binder_ctor(&binder, &backend->modules);
 		binder_bind(&binder, ast);
 		if (binder.error) r = 1;
 		binder_dtor(&binder);
 
-		if (!(*backend->transpile)(ast, LIST_GET(&dests, struct cv, i)->data, &backend->modules)) r = 1;
+		fprintf(stderr, "transpiling exports from: %s\n", *source);
+		if (!(*backend->transpile_exports)(ast, stream, &backend->modules)) r = 1;
+
 		ast_free(ast);
 	}
 
-	list_dtor(&dests);
+	fprintf(stderr, "binding: %s\n", *sources);
+	struct binder binder;
+	binder_ctor(&binder, &backend->modules);
+	binder_bind(&binder, ast);
+	if (binder.error) r = 1;
+	binder_dtor(&binder);
+
+	fprintf(stderr, "transpiling symbols from: %s\n", *sources);
+	if (!(*backend->transpile_symbols)(ast, stream, &backend->modules)) r = 1;
+
+	fprintf(stderr, "transpiling code from: %s\n", *sources);
+	if (!(*backend->transpile_code)(ast, stream, &backend->modules)) r = 1;
+
+	ast_free(ast);
+
+	fclose(stream);
 
 	return r;
 }
-
-static inline void add_sources(struct list* srcs, struct module* mod);
 
 static inline int main_compile_c(char const** sources, char const* dest, struct vbackend* backend)
 {
 	char tmp_file[] = "/tmp/vatc-transpile_c-XXXXXX.c";
 	if (!mkstemps(tmp_file, 2)) return 1;
 	int r = main_transpile_c(sources, tmp_file, backend);
-	struct list srcs;
-	list_ctor(&srcs, &vlist_pchar, 16);
-	for (size_t i = 0; i < backend->modules.pairs.size; ++i)
-	{
-		struct pair* pair = LIST_GET(&backend->modules.pairs, struct pair, i);
-		if (pair_status(pair) != PAIR_SET) continue;
-		struct module* mod = *PAIR_VAL(pair, struct module*);
-		add_sources(&srcs, mod);
-	}
-	if (r)
-	{
-		for (size_t i = 0; i < srcs.size; ++i)
-		{
-			char* file = *LIST_GET(&srcs, char*, i);
-			unlink(file);
-			struct str header;
-			str_of_cv(&header, cv_cstr(file));
-			str_pushcv(&header, cv_cstr(".h"));
-			unlink(header.data);
-			str_dtor(&header);
-		}
-		return r;
-	}
-	r = !(*backend->compile)(&srcs, dest) ? 1 : 0;
-	for (size_t i = 0; i < srcs.size; ++i)
-	{
-		char* file = *LIST_GET(&srcs, char*, i);
-		unlink(file);
-		struct str header;
-		str_of_cv(&header, cv_cstr(file));
-		str_pushcv(&header, cv_cstr(".h"));
-		unlink(header.data);
-		str_dtor(&header);
-	}
-	list_dtor(&srcs);
+	if (r == 0) r = !(*backend->compile)(tmp_file, dest) ? 1 : 0;
+	unlink(tmp_file);
 	return r;
 }
 
-static inline void add_sources(struct list* srcs, struct module* mod)
+static inline int main_link_c(char const** sources, char const* dest, struct vbackend* backend)
 {
-	if (mod->compiled_file.size > 0) list_push_copy(srcs, &mod->compiled_file.data);
-	for (size_t i = 0; i < mod->children.pairs.size; ++i)
+	int r = 0;
+	struct list objs;
+	list_ctor(&objs, &vlist_pchar, 16);
+	for (size_t i = 0; sources[i] != NULL; ++i)
 	{
-		struct pair* pair = LIST_GET(&mod->children.pairs, struct pair, i);
-		if (pair_status(pair) != PAIR_SET) continue;
-		add_sources(srcs, *PAIR_VAL(pair, struct module*));
+		char tmp_file[] = "/tmp/vatc-compile_c-XXXXXX.o";
+		if (!mkstemps(tmp_file, 2)) return 1;
+		struct str str;
+		str_of_cv(&str, cv_cstr(tmp_file));
+		list_push_move(&objs, &str.data);
+
+		char const* tmp = sources[i];
+		sources[i] = sources[0];
+		sources[0] = tmp;
+
+		r |= main_compile_c(sources, tmp_file, backend);
+		dict_dtor(&backend->modules);
+		dict_ctor(&backend->modules, &vdict_cv_upmodule, 0);
 	}
+	if (r == 0) r = !(*backend->link)(&objs, dest) ? 1 : 0;
+	for (size_t i = 0; sources[i] != NULL; ++i)
+	{
+		char* obj = *LIST_GET(&objs, char*, i);
+		unlink(obj);
+		free(obj);
+	}
+	list_dtor(&objs);
+	return r;
 }
 
 static inline int main_run_c(char const** sources, struct vbackend* backend)
